@@ -1,0 +1,46 @@
+:root {
+  /* Theme hooks — useWedding() overwrites these from the API's theme_config. */
+  --maroon-title: #ad2124;
+  --maroon-text: #790707;
+  --gold: #ac6f28;
+  --bg-body: #f2ece1;
+
+  /* colors — sample these off the design's own text fills once it is sliced. */
+  --paper: #f2ece1; /* the ground the COVER sits on */
+  /*
+   * The BODY frame's own fill. Sample it separately even when it looks identical to
+   * --paper: compositing a band over the wrong ground biases every alpha
+   * scripts/solve_alpha.py fits. In template 6 the two were two counts per channel apart.
+   */
+  --sheet: #f2ece1;
+
+  /*
+   * fonts — placeholders from @fontsource until the design's real faces are known.
+   * Self-hosted faces go in src/assets/fonts/ with an @font-face in style.css.
+   */
+  --font-script: "Pinyon Script", cursive;
+  --font-display: "Ibarra Real Nova", serif; /* couple name */
+  --font-serif: "Ibarra Real Nova", serif; /* guest block */
+  --font-sans: "Jost", system-ui, sans-serif; /* UI labels */
+  --font-body: "Cormorant Infant", serif; /* body copy */
+
+  /*
+   * One token per FACE. Template 6 shipped two tokens each standing in for two different
+   * faces and had to split them later; a token that names one face is the thing that makes
+   * retiring a substitute a one-line change.
+   */
+
+  /*
+   * design frame reference — set these from the Figma frames before slicing anything.
+   *
+   * --frame-w is LOAD-BEARING: InviteBody derives --px from it, so every band coordinate
+   * is read in this space. It is NOT the same across templates — 2-5 were 375 wide and 6
+   * was 596 — and the scripts read it as FRAME_W from the environment for the same reason.
+   * The 375 below is a placeholder that will silently render a wider frame at the wrong
+   * scale; replace it, do not inherit it.
+   */
+  --frame-w: 375;
+  --frame-h: 725;
+  --body-h: 0;
+  --card-max: 430px;
+}

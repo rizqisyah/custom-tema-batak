@@ -1,0 +1,132 @@
+/*
+ * Placeholder families until the design's real faces are known. Every import here is a
+ * font request: trim what this design does not use, and add what it does.
+ *
+ * package.json carries a broader @fontsource set than these four — the faces the last
+ * template needed. Import from it freely, and `npm rm` what this design never uses before
+ * shipping. Anything NOT on fontsource is self-hosted; see the @font-face note below.
+ */
+@import "@fontsource/jost/400.css";
+@import "@fontsource/cormorant-infant/400.css";
+@import "@fontsource/ibarra-real-nova/400.css";
+@import "@fontsource/pinyon-script/400.css";
+@import "./style/tokens.css";
+
+/*
+ * Self-hosted faces go here: drop the file in src/assets/fonts/ and add an @font-face
+ * block pointing at it. Record the license in a comment beside it — several of the
+ * faces these templates use are demo cuts that are personal-use only.
+ */
+
+/*
+ * Every band of the body frame is the same shape: sliced art from BandArt.vue, and live
+ * copy positioned over it in design px. These rules are global rather than repeated in
+ * each band's scoped block — a section's own stylesheet then carries nothing but its
+ * nodes' coordinates, which is the only part that differs.
+ *
+ * `> *:not(.band-art)` rather than a class per node: BandArt's images are the only
+ * children a band does not place itself, and they set their own z inline.
+ */
+.band {
+  position: relative;
+}
+
+.band > *:not(.band-art) {
+  /* Above every sliced layer. BandArt sets z inline, which beats a rule. */
+  z-index: 900;
+  position: absolute;
+  margin: 0;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(calc(24 * var(--px)));
+  transition:
+    opacity 1200ms cubic-bezier(0.16, 1, 0.3, 1) var(--delay, 0ms),
+    transform 1600ms cubic-bezier(0.16, 1, 0.28, 1) var(--delay, 0ms);
+}
+
+.band.is-in > *:not(.band-art) {
+  opacity: 1;
+  transform: none;
+}
+
+/*
+ * The one-line nodes. FILL THIS LIST IN as bands are cut; it is empty by design, and the
+ * rule is empty until it has selectors.
+ *
+ * A Figma node that auto-sizes to its own text reports a box that IS the ink, to within a
+ * pixel. Measured across template 6's fourteen bands: 0.6 design px of spare width on the
+ * median such node, and NEGATIVE spare width on three of them.
+ *
+ * That margin does not survive the trip. --px is viewport/--frame-w, so at an arbitrary
+ * viewport each box and each glyph round independently and a node with half a pixel to
+ * spare loses it. The line then wraps — and because a band's rows are absolutely
+ * positioned 24-30 design px apart with a matching line-height, the second line lands
+ * exactly on the row below. That is the collision: an address dropping its postcode onto
+ * the country line, a bank number sliding under its label. It also fires whenever the
+ * webfont has not landed yet, since the fallback face sets wider.
+ *
+ * Pin them to one line rather than widening the boxes. Widening moves the design's own
+ * geometry; nowrap keeps it, and the sub-pixel overspill goes where text-align:center
+ * puts it — half on each side, off the same axis the design centred them on.
+ *
+ * Only nodes that are ONE LINE IN THE DESIGN belong here. Wrapping paragraphs and nodes
+ * carrying authored breaks (white-space: pre-line) must keep wrapping at their declared
+ * width, and adding them here silently truncates the design's own line breaks.
+ */
+
+/*
+ * Motion this large is exactly what a vestibular disorder cannot tolerate, so the
+ * reduced-motion path is not a shortened version of it — it is no movement at all.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .band > *:not(.band-art) {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  width: 100%;
+  min-height: 100%;
+  overflow-x: hidden;
+}
+
+/* While the cover owns the screen nothing scrolls — see App.vue's `isLocked`. */
+html.is-cover-locked,
+html.is-cover-locked body {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body {
+  background: var(--paper);
+  font-family: system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
