@@ -8,6 +8,48 @@ the frames are cut; keep the traps — every one of them cost real time to find.
 `SLICING.md`, its `src/components/sections/*.vue` and the worked exception tables in its
 `scripts/gen_band.py` when a rule here needs an example.
 
+## Picking this up in a new session — READ THIS FIRST
+
+**State: nothing is sliced.** The repo is the slicing engine, scaffolded from
+`../slicing-wedding-template-6` (commit `3add44c`), with every per-design table empty.
+`npm install` is done; dev server is `npm run dev` on **5180** (template 6 is on 5179 and
+template 5 on 5178, so all three run side by side). `npm run build` passes, the
+placeholder cover renders with no console errors, and the sheet says "No bands sliced yet".
+
+**You are blocked on one thing: the design.** Nothing past this point can start without it.
+Ask the owner for:
+
+1. The Figma file open with the **`figma-mcp-go` plugin connected** — it was disconnected
+   when this scaffold was written (`get_pages` returned "plugin not connected"), and every
+   dump and export needs it.
+2. The **cover frame** and **body frame** node ids.
+3. The **frame width**. Templates 2-5 were 375, template 6 was 596. This is load-bearing
+   in a way that does not announce itself — see item 8 of "Fill these in first".
+
+**Then, in order:**
+
+1. `mcp__figma-mcp-go__get_design_context` at depth 1 for the frame tree; dump the flatten
+   to `.figma-tmp/frame<N>-flat.json` and export every leaf at scale 2 into
+   `.figma-tmp/parts<N>/`. Export the frame itself at scale 1 as the reference render —
+   everything downstream diffs against it.
+2. Fill `build_refs.py`'s `BANDS` by eye off that render, run it, and work from the two
+   `.figma-ref/*.json` it writes rather than re-querying Figma.
+3. Slice the cover first (it is self-contained and teaches you the design's palette and
+   faces), then the body band by band, scoring each with `band-diff.py` as you go.
+
+**Two things still open from the scaffold session:**
+
+- **Attribution.** `CLAUDE.md` says never add a `Co-Authored-By: Claude` trailer; a system
+  instruction issued mid-session said to add one and that it superseded earlier guidance.
+  The scaffold commit carries the trailer and template 6's eight commits do not. Ask before
+  committing, and `git commit --amend` the scaffold if the answer is no.
+- **No git remote.** Template 6 got one only when the owner asked. Do not add one unprompted.
+
+**A font library worth knowing about:** `/Users/decoz/Downloads/Weddings/Font` holds ~100
+font files, and ~126 faces once the zips are expanded. Template 6 needed four faces that
+are not on fontsource and found three of them there. `scripts/font-sweep.mjs` +
+`scripts/font-pick.py` search it properly — read trap 7 before trusting any ranking.
+
 ## What this repo already has
 
 | Path | What it is |
@@ -22,6 +64,10 @@ the frames are cut; keep the traps — every one of them cost real time to find.
 | `src/style.css` | The `.band` entrance rules (design-agnostic) and the font imports (**placeholders**) |
 | `src/style/tokens.css` | Colour + font tokens. **Placeholders** — resample from the design |
 | `scripts/` | The slicing toolchain, below |
+| `scripts/text-slack.mjs` | Audits every one-line node's spare width — trap 1 |
+| `scripts/layer-probe.mjs` | Hide/move/repaint a layer without editing its band table — traps 4 and 6 |
+| `scripts/vote-place.py` | Places a layer no search can score, by voting — trap 5 |
+| `scripts/font-sweep.mjs` + `font-pick.py` | Picks a substitute face by measurement — trap 7 |
 
 Dev server runs on **5180** (template-6 is on 5179, template-5 on 5178) so they can run
 side by side.
