@@ -11,11 +11,22 @@
  * driven by `useWedding().gift`, CAPPED AT TWO — the design draws two apertures and a
  * third would paint past the last plate.
  *
+ * The form is TWO steps. Frame 17 (2141:1329) is the second one — a dropzone for the
+ * transfer slip, a back arrow and Confirm — and it is a separate 520-wide artboard in
+ * Figma, which is why it was missed on the first pass over frame 9.
+ *
+ * Step 2 is laid out on the FORM's own box (x 40, w 515.91) rather than on Frame 17's
+ * 23px insets: the artboard is standalone, but in the page the two steps have to align
+ * with each other. Its internal proportions are the design's — dropzone 361 tall at
+ * radius 11, white on an olive stroke; Confirm 60.3 tall at radius 23.
+ *
  * The form has NO endpoint: api.ts exposes only submitRsvp and submitUcapan, and there is
- * no gift route. It therefore validates and confirms locally rather than pretending to
- * send. Wire it to a real endpoint when one exists; the shape is already here.
+ * no gift route. It validates and confirms locally rather than pretending to send. The
+ * file never leaves the browser. Wire both to a real endpoint when one exists — and
+ * VALIDATE THE UPLOAD SERVER-SIDE TOO; the checks here are a UX convenience, not a
+ * security boundary, since anything client-side can be bypassed.
  */
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
 import BandArt from '../invite/BandArt.vue'
 import { assets } from '../../lib/bandAssets'
 import type { BandLayer } from '../../lib/bandLayer'
@@ -73,15 +84,84 @@ async function copy(n: number, value: string) {
 }
 
 const form = ref({ name: '', owner: '', message: '', amount: '' })
+const step = ref<1 | 2>(1)
 const sent = ref(false)
-const error = ref('')
-function submit() {
-  if (!form.value.name.trim() || !form.value.amount.trim()) {
-    error.value = 'Nama dan nominal wajib diisi.'
+const errors = ref<Record<string, string>>({})
+
+/*
+ * Per FIELD rather than one line for the whole form: "Nama dan nominal wajib diisi" makes
+ * the guest hunt for which box is wrong. Amount is checked as a NUMBER, not just as
+ * non-empty — "seratus ribu" in an amount field is a transfer nobody can reconcile.
+ */
+function validate() {
+  const e: Record<string, string> = {}
+  const f = form.value
+  if (!f.name.trim()) e.name = 'Nama wajib diisi.'
+  if (!f.owner.trim()) e.owner = 'Nama pemilik rekening wajib diisi.'
+  const digits = f.amount.replace(/[^\d]/g, '')
+  if (!f.amount.trim()) e.amount = 'Nominal wajib diisi.'
+  else if (!digits || Number(digits) <= 0) e.amount = 'Nominal harus berupa angka.'
+  errors.value = e
+  return Object.keys(e).length === 0
+}
+
+function next() {
+  if (!validate()) return
+  step.value = 2
+}
+
+/* Trust boundary: only images, and a cap so a 40MB photo does not wedge the page. */
+const MAX_BYTES = 5 * 1024 * 1024
+const ACCEPT = ['image/png', 'image/jpeg', 'image/webp', 'image/heic', 'image/heif']
+
+const proof = ref<File | null>(null)
+const preview = ref('')
+const dragging = ref(false)
+const fileError = ref('')
+
+function takeFile(f: File | null | undefined) {
+  fileError.value = ''
+  if (!f) return
+  if (!ACCEPT.includes(f.type)) {
+    fileError.value = 'Formatnya harus gambar (PNG, JPG, atau WEBP).'
     return
   }
-  error.value = ''
+  if (f.size > MAX_BYTES) {
+    fileError.value = 'Ukuran maksimal 5MB.'
+    return
+  }
+  // Revoke the previous object URL or every re-pick leaks one.
+  if (preview.value) URL.revokeObjectURL(preview.value)
+  proof.value = f
+  preview.value = URL.createObjectURL(f)
+}
+
+function onDrop(e: DragEvent) {
+  dragging.value = false
+  takeFile(e.dataTransfer?.files?.[0])
+}
+
+function clearProof() {
+  if (preview.value) URL.revokeObjectURL(preview.value)
+  proof.value = null
+  preview.value = ''
+  fileError.value = ''
+}
+
+onBeforeUnmount(() => {
+  if (preview.value) URL.revokeObjectURL(preview.value)
+})
+
+function confirm() {
+  if (!proof.value) {
+    fileError.value = 'Unggah bukti transfer dulu.'
+    return
+  }
   sent.value = true
+}
+
+function back() {
+  step.value = 1
 }
 </script>
 
@@ -111,24 +191,102 @@ function submit() {
       <p class="gift__name">{{ a.name }}</p>
     </div>
 
-    <p class="gift__formhint">Fill the form below, please</p>
+    <p v-if="step === 1" class="gift__formhint">Fill the form below, please</p>
 
-    <form class="gift__form" @submit.prevent="submit">
-      <input v-model="form.name" class="gift__in" type="text" placeholder="Name" />
-      <input v-model="form.owner" class="gift__in" type="text" placeholder="Account Owner Name" />
-      <input v-model="form.message" class="gift__in" type="text" placeholder="Message" />
-      <input v-model="form.amount" class="gift__in" type="text" inputmode="numeric" placeholder="Amount" />
+    <!-- STEP 1 — the four fields and Next. -->
+    <form v-if="step === 1" class="gift__form" @submit.prevent="next">
+      <div class="gift__field">
+        <input
+          v-model="form.name"
+          class="gift__in"
+          :class="{ 'is-bad': errors.name }"
+          type="text"
+          placeholder="Name"
+          :aria-invalid="!!errors.name"
+        />
+        <span v-if="errors.name" class="gift__ferr">{{ errors.name }}</span>
+      </div>
+      <div class="gift__field">
+        <input
+          v-model="form.owner"
+          class="gift__in"
+          :class="{ 'is-bad': errors.owner }"
+          type="text"
+          placeholder="Account Owner Name"
+          :aria-invalid="!!errors.owner"
+        />
+        <span v-if="errors.owner" class="gift__ferr">{{ errors.owner }}</span>
+      </div>
+      <div class="gift__field">
+        <input v-model="form.message" class="gift__in" type="text" placeholder="Message" />
+      </div>
+      <div class="gift__field">
+        <input
+          v-model="form.amount"
+          class="gift__in"
+          :class="{ 'is-bad': errors.amount }"
+          type="text"
+          inputmode="numeric"
+          placeholder="Amount"
+          :aria-invalid="!!errors.amount"
+        />
+        <span v-if="errors.amount" class="gift__ferr">{{ errors.amount }}</span>
+      </div>
       <button class="gift__next" type="submit">
         Next
         <svg viewBox="0 0 12 18" aria-hidden="true">
           <path d="M2 2l8 7-8 7" fill="none" stroke="currentColor" stroke-width="2.2" />
         </svg>
       </button>
-      <p v-if="error" class="gift__msg gift__msg--err" role="alert">{{ error }}</p>
-      <p v-else-if="sent" class="gift__msg" role="status">
-        Terima kasih — catatan amplop digital tersimpan.
-      </p>
     </form>
+
+    <!-- STEP 2 — Frame 17 (2141:1329): the transfer slip. -->
+    <div v-else class="gift__step2">
+      <!-- 2141:1308 — the design's back chevron, as a real button. -->
+      <button class="gift__back" type="button" @click="back">
+        <svg viewBox="0 0 12 18" aria-hidden="true">
+          <path d="M10 2L2 9l8 7" fill="none" stroke="currentColor" stroke-width="2.2" />
+        </svg>
+        <span class="sr-only">Kembali ke formulir</span>
+      </button>
+
+      <!-- 2141:1316 — white, radius 11, olive stroke. A label so the whole box is the target. -->
+      <label
+        class="gift__drop"
+        :class="{ 'is-dragging': dragging, 'is-bad': fileError }"
+        @dragover.prevent="dragging = true"
+        @dragleave.prevent="dragging = false"
+        @drop.prevent="onDrop"
+      >
+        <input
+          class="gift__file"
+          type="file"
+          :accept="ACCEPT.join(',')"
+          @change="takeFile(($event.target as HTMLInputElement).files?.[0])"
+        />
+        <template v-if="preview">
+          <img class="gift__preview" :src="preview" alt="Pratinjau bukti transfer" />
+        </template>
+        <template v-else>
+          <img class="gift__cloud" :src="assets['gift/parts/2141-1318.webp']" alt="" />
+          <span class="gift__uptitle">Upload proof of transfer</span>
+          <span class="gift__upsub">Screen Shoot / Photo Slip Transfer</span>
+        </template>
+      </label>
+
+      <p v-if="proof" class="gift__filename">
+        {{ proof.name }} · {{ Math.round(proof.size / 1024) }} KB
+        <button class="gift__clear" type="button" @click="clearProof">ganti</button>
+      </p>
+      <p v-if="fileError" class="gift__msg gift__msg--err" role="alert">{{ fileError }}</p>
+
+      <!-- 2141:1313 — olive, radius 23. -->
+      <button class="gift__confirm" type="button" @click="confirm">Confirm</button>
+
+      <p v-if="sent" class="gift__msg" role="status">
+        Terima kasih — bukti transfer sudah kami terima.
+      </p>
+    </div>
   </section>
 </template>
 
@@ -243,6 +401,27 @@ function submit() {
   --delay: 300ms;
 }
 
+/*
+ * Each field owns its own error line, so the message sits under the box it belongs to.
+ * The row keeps the design's 75.4px pitch whether or not an error is showing — an error
+ * that pushed the next field down would move the whole form off the design's geometry.
+ */
+.gift__field {
+  position: relative;
+  height: calc(55.4 * var(--px));
+}
+
+.gift__ferr {
+  position: absolute;
+  left: calc(12.8 * var(--px));
+  top: calc(57 * var(--px));
+  font-family: var(--font-sans);
+  font-size: calc(12 * var(--px));
+  line-height: calc(16 * var(--px));
+  color: var(--maroon);
+  white-space: nowrap;
+}
+
 /* 2141:1177 and its three siblings — white, radius 11, 55.4 tall. */
 .gift__in {
   width: 100%;
@@ -259,6 +438,7 @@ function submit() {
 
 .gift__in::placeholder { color: #757575; }
 .gift__in:focus-visible { outline: 2px solid var(--maroon); outline-offset: 2px; }
+.gift__in.is-bad { box-shadow: inset 0 0 0 calc(1.5 * var(--px)) var(--maroon); }
 
 /* 2141:1189 — olive, radius 25, with the design's Bellefair label. */
 .gift__next {
@@ -287,4 +467,133 @@ function submit() {
 }
 
 .gift__msg--err { color: var(--maroon); }
+
+/*
+ * STEP 2 — Frame 17. Anchored on the form's own box so the two steps line up with each
+ * other in the page, rather than on the standalone artboard's 23px insets.
+ */
+.gift__step2 {
+  left: calc(40 * var(--px));
+  top: calc(1190 * var(--px));
+  width: calc(515.91 * var(--px));
+  /*
+   * An explicit height, because every child inside is absolutely positioned and the
+   * wrapper would otherwise collapse to zero — it still PAINTS (the children are placed
+   * against it) but it is not a box, so it cannot be hit-tested, screenshotted or
+   * measured, and any check that asks whether the step is visible gets "no".
+   * back 34 + gap + dropzone 361.2 + filename + Confirm 60.3, to the design's own bottom.
+   */
+  height: calc(560 * var(--px));
+  text-align: left;
+  --delay: 240ms;
+}
+
+.gift__step2 > * {
+  position: absolute;
+  left: 0;
+}
+
+/* 2141:1308 — 16.1 x 30.9, the design's own 50% black. */
+.gift__back {
+  top: 0;
+  display: grid;
+  place-items: center;
+  width: calc(34 * var(--px));
+  height: calc(34 * var(--px));
+  border: 0;
+  background: none;
+  color: rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+
+.gift__back svg { width: calc(13 * var(--px)); height: calc(20 * var(--px)); }
+.gift__back:hover { color: rgba(0, 0, 0, 0.8); }
+
+/* 2141:1316 — the dropzone. A <label> so the whole panel is the file target. */
+.gift__drop {
+  top: calc(49 * var(--px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(8 * var(--px));
+  width: 100%;
+  height: calc(361.2 * var(--px));
+  border: calc(1.2 * var(--px)) solid var(--olive);
+  border-radius: calc(11 * var(--px));
+  background: #fff;
+  cursor: pointer;
+  overflow: hidden;
+  transition: background 200ms ease, border-color 200ms ease;
+}
+
+.gift__drop.is-dragging { background: #f4f7ef; border-color: #4d5c39; }
+.gift__drop.is-bad { border-color: var(--maroon); }
+.gift__drop:focus-within { outline: 2px solid var(--maroon); outline-offset: 2px; }
+
+/* The input stays in the DOM (and focusable) rather than display:none. */
+.gift__file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+/* 2141:1318 — the design's own cloud, not a redrawn one. */
+.gift__cloud {
+  width: calc(110.2 * var(--px));
+  height: calc(80.1 * var(--px));
+}
+
+.gift__preview {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.gift__uptitle,
+.gift__upsub {
+  font-family: var(--font-visia);
+  font-size: calc(15.6 * var(--px));
+  line-height: calc(20.3 * var(--px));
+  color: var(--ink);
+  text-align: center;
+}
+
+.gift__uptitle { font-weight: 500; margin-top: calc(10 * var(--px)); }
+.gift__upsub { font-weight: 300; }
+
+.gift__filename {
+  top: calc(418 * var(--px));
+  font-family: var(--font-sans);
+  font-size: calc(13 * var(--px));
+  color: var(--ink);
+}
+
+.gift__clear {
+  border: 0;
+  background: none;
+  color: var(--maroon);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* 2141:1313 — olive, radius 23, 60.3 tall. */
+.gift__confirm {
+  top: calc(464 * var(--px));
+  width: 100%;
+  height: calc(60.3 * var(--px));
+  border: 0;
+  border-radius: calc(23 * var(--px));
+  background: var(--olive);
+  color: #fff;
+  font-family: "Bellefair", serif;
+  font-size: calc(20 * var(--px));
+  cursor: pointer;
+}
+
+.gift__confirm:hover { filter: brightness(1.08); }
+
+.gift__step2 .gift__msg { top: calc(534 * var(--px)); }
 </style>
