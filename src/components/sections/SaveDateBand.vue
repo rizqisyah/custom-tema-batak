@@ -121,12 +121,6 @@ const calendarHref = computed(() => {
   width: calc(658.96 * var(--px));
   transform: translateX(-50%) translateY(calc(24 * var(--px)));
   font-family: var(--font-script);
-  /*
-   * Its own width factor, measured on this string against the render: 376px of ink in
-   * Figma, 396 at the global 0.416, so 0.395. Trap 7's per-WORD rule — the couple's name
-   * needs 0.416 and this needs 0.395 at a different authored size.
-   */
-  --script-k: 0.395;
   font-size: calc(86.67 * var(--px) * var(--script-k));
   line-height: calc(83 * var(--px));
   font-weight: 400;

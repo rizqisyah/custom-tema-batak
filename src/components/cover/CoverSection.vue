@@ -26,7 +26,7 @@ defineEmits<{ open: [] }>()
  * So it is derived instead: break before the ampersand, which is the shape every one of
  * these names takes. A name without one simply stays on a single line.
  */
-const coupleLines = computed(() => props.coupleName.replace(/\s*&\s*/, '\n& '))
+const coupleLines = computed(() => props.coupleName.replace(/\s*&\s*/, '\n  & '))
 </script>
 
 <template>
@@ -197,15 +197,7 @@ const coupleLines = computed(() => props.coupleName.replace(/\s*&\s*/, '\n& '))
 
 .cover__couple {
   font-family: var(--font-script);
-  /*
-   * Local override of the global single-line factor. This node is the design's only
-   * TWO-line script block, and its width is set by the longer line ("  & Monika", with
-   * the design's own leading spaces) rather than by the whole string — which lands on a
-   * different factor than the single-line case. Measured on the built cover against the
-   * frame render: Figma inks the block 455px wide, this inks it 454px. See tokens.css.
-   */
-  --script-k: 0.443;
-  /* 136.67 is the design's authored size; --script-k is the substitute's measured deviation. */
+  /* The design's authored size. --script-k is 1 now that the real face is installed. */
   font-size: calc(136.67 * var(--px) * var(--script-k));
   /*
    * 83px of leading under 136.67px type: the two lines deliberately interleave, which is
@@ -213,7 +205,7 @@ const coupleLines = computed(() => props.coupleName.replace(/\s*&\s*/, '\n& '))
    */
   line-height: calc(83 * var(--px));
   font-weight: 400;
-  white-space: pre-line; /* carries the derived break before the ampersand */
+  white-space: pre-wrap; /* pre-LINE would collapse the design's two-space indent */
 }
 
 .cover__dear,

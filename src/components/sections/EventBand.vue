@@ -147,7 +147,6 @@ const mapsHref = computed(
   top: calc(550.5 * var(--px));
   width: calc(96 * var(--px));
   font-family: var(--font-script);
-  --script-k: 0.42;
   font-size: calc(55 * var(--px) * var(--script-k));
   line-height: calc(55 * var(--px));
   color: #fff;

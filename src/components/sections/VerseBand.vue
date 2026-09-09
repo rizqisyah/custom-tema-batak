@@ -22,7 +22,7 @@ const { coupleNickname, quoteText, quoteVerse } = useWedding()
  * Derived rather than authored — a newline in the string cannot survive useWedding()
  * (SLICING.md, "An authored newline ... cannot survive").
  */
-const coupleLines = computed(() => coupleNickname.value.replace(/\s*&\s*/, '\n& '))
+const coupleLines = computed(() => coupleNickname.value.replace(/\s*&\s*/, '\n  & '))
 
 /*
  * 2130:615 is one node of three lines: the verse, a blank line, then the reference.
@@ -71,10 +71,9 @@ const verse = computed(() => `${quoteText.value}\n\n${quoteVerse.value}`)
   width: calc(658.963 * var(--px));
   transform: translateX(-50%);
   font-family: var(--font-script);
-  --script-k: 0.443;
   font-size: calc(136.67 * var(--px) * var(--script-k));
   line-height: calc(83 * var(--px));
-  white-space: pre-line;
+  white-space: pre-wrap; /* pre-LINE would collapse the design's two-space indent */
   color: var(--ink);
   --delay: 160ms;
 }

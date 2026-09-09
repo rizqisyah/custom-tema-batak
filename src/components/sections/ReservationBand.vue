@@ -95,7 +95,6 @@ async function send() {
   top: 0;
   width: calc(348 * var(--px));
   font-family: var(--font-script);
-  --script-k: 0.408;
   font-size: calc(132.67 * var(--px) * var(--script-k));
   line-height: calc(83 * var(--px));
   font-weight: 400;

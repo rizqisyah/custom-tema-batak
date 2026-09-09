@@ -92,8 +92,6 @@ const at = (n: number) => {
   width: calc(658.96 * var(--px));
   transform: translateX(-50%) translateY(calc(24 * var(--px)));
   font-family: var(--font-script);
-  /* Measured on this string: 380px of ink in Figma against 368 at 0.395. */
-  --script-k: 0.408;
   font-size: calc(86.67 * var(--px) * var(--script-k));
   line-height: calc(83 * var(--px));
   font-weight: 400;

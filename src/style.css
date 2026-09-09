@@ -23,24 +23,45 @@
 @import "./style/tokens.css";
 
 /*
- * Self-hosted faces. Record the license beside each one — several of these are demo
- * cuts that are personal-use only.
+ * Self-hosted faces. Record the license beside each one.
  *
- * Aurellie Calestion — SUBSTITUTE for the design's "Creattion Demo", which is not on
- * fontsource and is not in the local font library. Picked by ink density + aspect
- * against the render's own glyph ink (scripts/font-sweep.mjs over 126 faces, then
- * scripts/font-pick.py): reference density 0.106 / aspect 7.32, this face 0.105 / 7.39
- * — the closest of the 126 by a factor of two, and confirmed by eye against the render.
+ * These are the design's OWN faces, supplied by the owner — not substitutes. Creattion
+ * Demo and Visia Pro replaced Aurellie Calestion and Jost, which stood in while they were
+ * unavailable; --script-k is 1 again as a result (see tokens.css).
  *
- * LICENSE: demo/personal-use cut. Clear a commercial license, or swap in the licensed
- * Creattion Demo, before this ships to a paying wedding. Swapping it back means
- * RE-MEASURING the sizes and positions of every node in --font-script, not just
- * changing this one src — see SLICING.md, "Retiring a substitute".
+ * LICENSE: Creattion Demo is a "Demo" cut and Visia Pro is a commercial family. Both came
+ * from the owner. Confirm the commercial licence covers web embedding before release.
  */
 @font-face {
-  font-family: "Creattion Sub";
-  src: url("./assets/fonts/aurellie-calestion.otf") format("opentype");
+  font-family: "Creattion Demo";
+  src: url("./assets/fonts/CreattionDemo.otf") format("opentype");
   font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/*
+ * Visia Pro ships as separate static files per weight, so each gets its own @font-face
+ * under one family and the weight selects between them.
+ *
+ * Visia Pro LIGHT is still missing — the design uses it for one node, the "Screen Shoot /
+ * Photo Slip Transfer" line under the upload icon. That node falls back to SemiBold here,
+ * which keeps the design's weight CONTRAST against the Heavy line above it and keeps both
+ * lines in one family; switching family for a single line would read worse than the
+ * slightly heavy weight does.
+ */
+@font-face {
+  font-family: "Visia Pro";
+  src: url("./assets/fonts/VisiaPro-SemiBold.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Visia Pro";
+  src: url("./assets/fonts/VisiaPro-Heavy.ttf") format("truetype");
+  font-weight: 800;
   font-style: normal;
   font-display: swap;
 }

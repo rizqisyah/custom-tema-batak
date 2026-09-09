@@ -47,13 +47,6 @@ const LAYERS: BandLayer[] = [
 .memories__l2 {
   transform: translateX(-50%) translateY(calc(24 * var(--px)));
   font-family: var(--font-script);
-  /*
-   * Left at the "Save the Date" value. An ink-box measurement suggested 0.444, but these
-   * two nodes OVERLAP by 20px so neither box can be isolated cleanly, and applying 0.444
-   * made the band's diff WORSE (5.25 -> 5.51). Where the ink boxes cannot be separated,
-   * the band diff is the better instrument.
-   */
-  --script-k: 0.395;
   font-size: calc(86.67 * var(--px) * var(--script-k));
   line-height: calc(83 * var(--px));
   font-weight: 400;

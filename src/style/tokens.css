@@ -48,42 +48,24 @@
    * Retiring either means RE-MEASURING, not just swapping the family — a substitute
    * sets a different number of characters per line and its line boxes sit differently.
    */
-  --font-script: "Creattion Sub", cursive; /* SUBSTITUTE: Aurellie Calestion, self-hosted */
+  --font-script: "Creattion Demo", cursive; /* the design's own face, self-hosted */
   --font-hand: "Architects Daughter", cursive; /* SUBSTITUTE for Figma Hand */
 
   /*
-   * Substitute size deviations. A substitute does NOT draw the design's authored size —
-   * the same px value is a different ink height in a different face, and Creattion Demo
-   * in particular carries enormous internal headroom for its swashes. So every node in a
-   * substituted family multiplies the design's own size by its face's factor, and the
-   * design's number stays visible in the rule:
+   * Substitute size deviation, still needed for ONE face.
    *
-   *   font-size: calc(136.67 * var(--px) * var(--script-k));
+   * --script-k was 0.395-0.443 while Creattion Demo was substituted by Aurellie
+   * Calestion, because a substitute does not draw the authored size and the factor is
+   * per STRING. The owner supplied the real Creattion Demo, so it is 1: the design's
+   * authored sizes are now drawn as authored, and every per-node override was deleted.
    *
-   * Measured by ink box against the render, not guessed (SLICING.md trap 7).
+   * Keep the multiplier in the rules rather than removing it. It is what makes the next
+   * substitution a one-line change, and it documents that the sizes ARE the design's.
    *
-   * This DEFAULT is the SINGLE-LINE match: Figma sets "Waraney & Monika" at 75px in
-   * node 2129:593 and inks it 461px wide, and Aurellie inks 14.775px per size unit, so
-   * 461 / (75 * 14.775) = 0.416. Single-line headings are the common case on this sheet
-   * ("Save the Date", "Gallery Photo", "Reservation", "Thank You"...).
-   *
-   * It is NOT one number for the whole design. Trap 7's rule is width-match per WORD:
-   * one authored size becomes a different factor for each string, because per-glyph
-   * widths differ unevenly between two faces. The cover's TWO-line block measures 0.443
-   * and overrides this locally. Every new script node gets its own check against the
-   * frame render as its band is cut — do not assume this value carries.
-   *
-   * Width-match, not height-match: at either factor the substitute's descenders still
-   * run ~15px deeper than Creattion's, and that is the recorded deviation, not a defect.
-   *
-   * Architects Daughter needs almost no size correction (0.914) but sets 23% NARROWER
-   * than Figma Hand, because the design letterspaces that node; the width is paid back
-   * as letter-spacing at each use rather than by inflating the size.
-   *
-   * RETIRING a substitute means setting its factor to 1 AND re-measuring every position
-   * that was fitted around it — see SLICING.md, "Retiring a substitute".
+   * --hand-k stays below 1: Figma Hand is Figma's own bundled face, is not licensable,
+   * and is still substituted by Architects Daughter.
    */
-  --script-k: 0.416;
+  --script-k: 1;
   --hand-k: 0.914;
   --font-display: "Instrument Serif", serif; /* section headings */
   --font-serif: "Ibarra Real Nova", serif; /* guest block, paragraphs */
@@ -98,7 +80,7 @@
    * faces this one needs no width factor: it is set in fixed-width boxes (card rows and
    * form labels) where a few px of advance does not move anything else.
    */
-  --font-visia: "Jost", system-ui, sans-serif;
+  --font-visia: "Visia Pro", system-ui, sans-serif;
 
   /*
    * design frame reference — measured off the two Figma frames.

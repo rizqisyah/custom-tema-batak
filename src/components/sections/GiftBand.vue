@@ -329,7 +329,6 @@ function back() {
   top: calc(538 * var(--px));
   width: calc(404 * var(--px));
   font-family: var(--font-script);
-  --script-k: 0.408;
   font-size: calc(86.67 * var(--px) * var(--script-k));
   line-height: calc(83 * var(--px));
   font-weight: 400;
@@ -365,11 +364,11 @@ function back() {
   color: #fff;
 }
 
-.gift__bank { top: calc(30 * var(--px)); font-family: var(--font-visia); font-weight: 500; font-size: calc(17 * var(--px)); line-height: calc(22.1 * var(--px)); }
+.gift__bank { top: calc(30 * var(--px)); font-family: var(--font-visia); font-weight: 800; font-size: calc(17 * var(--px)); line-height: calc(22.1 * var(--px)); }
 .gift__lbl { top: calc(65 * var(--px)); font-family: var(--font-serif); font-size: calc(12 * var(--px)); line-height: calc(15 * var(--px)); }
 .gift__lbl--name { top: calc(116.1 * var(--px)); font-family: var(--font-mono-label); line-height: calc(14.06 * var(--px)); }
-.gift__num { top: calc(83.4 * var(--px)); display: flex; align-items: center; gap: calc(6 * var(--px)); font-family: var(--font-visia); font-weight: 500; font-size: calc(17 * var(--px)); line-height: calc(22.1 * var(--px)); }
-.gift__name { top: calc(133.1 * var(--px)); font-family: var(--font-visia); font-weight: 500; font-size: calc(17 * var(--px)); line-height: calc(22.1 * var(--px)); }
+.gift__num { top: calc(83.4 * var(--px)); display: flex; align-items: center; gap: calc(6 * var(--px)); font-family: var(--font-visia); font-weight: 800; font-size: calc(17 * var(--px)); line-height: calc(22.1 * var(--px)); }
+.gift__name { top: calc(133.1 * var(--px)); font-family: var(--font-visia); font-weight: 800; font-size: calc(17 * var(--px)); line-height: calc(22.1 * var(--px)); }
 
 /*
  * 2141:1232 / 2141:1233 — the design's own copy glyph, placed inside a real button rather
@@ -414,7 +413,7 @@ function back() {
    */
   white-space: nowrap;
   font-family: var(--font-visia);
-  font-weight: 600;
+  font-weight: 800;
   font-size: calc(17 * var(--px));
   line-height: calc(19.92 * var(--px));
   color: var(--ink);
@@ -589,8 +588,14 @@ function back() {
   text-align: center;
 }
 
-.gift__uptitle { font-weight: 500; margin-top: calc(10 * var(--px)); }
-.gift__upsub { font-weight: 300; }
+/* 2141:1320 is Visia Pro Heavy. */
+.gift__uptitle { font-weight: 800; margin-top: calc(10 * var(--px)); }
+/*
+ * 2141:1323 is Visia Pro LIGHT, which the owner has not supplied. SemiBold keeps the
+ * design's weight contrast against the Heavy line above and keeps both lines in one
+ * family; a different family for one line would read worse than the extra weight does.
+ */
+.gift__upsub { font-weight: 600; }
 
 .gift__filename {
   top: calc(418 * var(--px));

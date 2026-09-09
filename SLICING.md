@@ -21,8 +21,8 @@ The design is a Batak (Christian) wedding invitation, Waraney & Monika.
 
 | | Figma node | size | state |
 |---|---|---|---|
-| cover | Frame 8 `2129:2` | 596 x 1183 | **done**, 4.27 mean abs vs render |
-| body | Frame 9 `2129:12` | 596 x **16159** | **all 16 bands done**, sheet 7.69 mean abs |
+| cover | Frame 8 `2129:2` | 596 x 1183 | **done**, 3.91 mean abs vs render |
+| body | Frame 9 `2129:12` | 596 x **16159** | **all 16 bands done**, sheet 7.05 mean abs |
 
 `FRAME_W` is **596**. Dev server `npm run dev` on **5180**. `npm run build` passes.
 
@@ -215,36 +215,42 @@ pair) and 9-11 carry real forms, which ship as CSS chrome, never as rasters.
 `--sheet`/`--paper` `#fffce0`, `--ink` `#3f3f3f`, `--maroon` `#730303`,
 `--cream` `#fff2bc`, `--olive` `#67764d`.
 
-Five faces. **Instrument Serif**, **Ibarra Real Nova** and **Crimson Text** are the
-design's own and are on fontsource. Two are substituted:
+Fifteen families across both frames. Seven are on fontsource (Instrument Serif, Ibarra
+Real Nova, Crimson Text, Crimson Pro, Bellefair, Abhaya Libre, Roboto), Times New Roman
+is a system face, and Phosphor / Font Awesome are two icon glyphs redrawn as inline SVG.
 
-- **Creattion Demo** -> *Aurellie Calestion*, self-hosted from
-  `/Users/decoz/Downloads/Weddings/Font`. Picked by ink density + aspect over 126 faces
-  (trap 7's method): reference 0.106/7.32, this face 0.105/7.39 — the closest by a factor
-  of two, and confirmed by eye. **Personal-use demo cut — clear a licence before shipping.**
-- **Figma Hand** -> *Architects Daughter* (fontsource). Nothing in the local library was
-  close: the library is all signature scripts, and this face is upright rounded printing.
+Four are self-hosted from `/Users/decoz/Downloads/Weddings/Font` and are the design's
+OWN faces, supplied by the owner:
 
-Both carry a measured size deviation, `--script-k` and `--hand-k`, because a substitute
-does not draw the authored size. `--script-k` is **per string**, not per face: 0.416 for
-single-line nodes (measured on `2129:593`) and 0.443 for the two-line couple block, which
-the cover and the verse band both override locally. Every new script node needs its own
-width check.
+| Face | Used for |
+|---|---|
+| Creattion Demo | every signature script — 14 nodes |
+| Visia Pro SemiBold | gift form labels and placeholders |
+| Visia Pro Heavy | bank card rows, "Fill the form below" |
+| Cavilenny | the footer credit |
 
-### Verified interactions
+**One and a half faces are still substituted:**
 
-`FRAME_W=596 node scripts/shot.mjs 5180` drives the sheet at three viewports and probes
-the four stateful controls. All pass, and its probes were RETARGETED from template 6's
-class names — they had been silently reporting "no carousel / no wish form" against
-markup that does not exist here.
+- **Figma Hand** -> Architects Daughter. Figma's own bundled face, not sold or
+  distributed, so this one stays substituted permanently. `--hand-k` (0.914) and the
+  per-node tracking exist for it.
+- **Visia Pro Light** -> Visia Pro SemiBold. One node only, the "Screen Shoot / Photo Slip
+  Transfer" line. SemiBold keeps the weight contrast against the Heavy line above it and
+  keeps both lines in one family.
 
-Two real bugs it caught that no screenshot could:
+**`--script-k` is 1.** It was 0.395-0.443 per STRING while Creattion Demo was substituted
+by Aurellie Calestion; installing the real face let every per-node override be deleted.
+The multiplier stays in the rules because it is what makes the next substitution a
+one-line change. Swapping the real faces in moved the sheet 7.69 -> 7.05 and the cover
+4.27 -> 3.91, with reservation -3.37, verse -1.93, memories -1.53 and bride -1.11.
 
-- **A posted wish replaced the whole design list.** In design mode `sendWish` answers
-  locally and lands in `wishes`, so the band swapped its four fallback wishes for the one
-  just written. Design-mode wishes are now prepended to the design's list instead.
-- **The carousel probe could not see movement**, because the design's fallback is the same
-  photograph four times and `src` never changes. It checks the `.is-current` thumb now.
+**Trap the swap exposed:** the design's second couple line is indented by TWO spaces
+("Waraney \n  & Monika"), and those spaces are part of the composition — without them the
+block sits 15px narrow. They survive only under `white-space: pre-wrap`; `pre-line` keeps
+the newline but COLLAPSES runs of spaces and silently drops the indent.
+
+LICENSE: Creattion Demo is a "Demo" cut, Visia Pro is a commercial family and Cavilenny
+came from the same demo-heavy library. Confirm web-embedding rights before release.
 
 ### Still open
 

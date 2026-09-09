@@ -33,7 +33,7 @@ const THANKS =
   'Atas kehadiran dan doa restunya, kami mengucapkan terima kasih.\nTuhan Yesus memberkati.'
 
 /* Same derived break as the cover's — see CoverSection. */
-const coupleLines = computed(() => coupleNickname.value.replace(/\s*&\s*/, '\n& '))
+const coupleLines = computed(() => coupleNickname.value.replace(/\s*&\s*/, '\n  & '))
 </script>
 
 <template>
@@ -58,7 +58,6 @@ const coupleLines = computed(() => coupleNickname.value.replace(/\s*&\s*/, '\n& 
   top: calc(116 * var(--px));
   width: calc(278 * var(--px));
   font-family: var(--font-script);
-  --script-k: 0.408;
   font-size: calc(86.67 * var(--px) * var(--script-k));
   line-height: calc(83 * var(--px));
   font-weight: 400;
@@ -96,10 +95,9 @@ const coupleLines = computed(() => coupleNickname.value.replace(/\s*&\s*/, '\n& 
   width: calc(658.96 * var(--px));
   transform: translateX(-50%) translateY(calc(24 * var(--px)));
   font-family: var(--font-script);
-  --script-k: 0.443;
   font-size: calc(112.67 * var(--px) * var(--script-k));
   line-height: calc(83 * var(--px));
-  white-space: pre-line;
+  white-space: pre-wrap; /* pre-LINE would collapse the design's two-space indent */
   color: var(--ink);
   --delay: 260ms;
 }
