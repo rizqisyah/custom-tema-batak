@@ -89,18 +89,45 @@ const sent = ref(false)
 const errors = ref<Record<string, string>>({})
 
 /*
+ * Amount holds DIGITS ONLY and is sanitised as it is typed, not merely rejected on
+ * submit: `type="text"` accepts anything, and letting a guest type "seratus ribu" and
+ * only telling them at the end is a worse form than one that never took the letters.
+ *
+ * `type="number"` is not the fix — it still accepts "e", "+" and "-", it cannot carry a
+ * thousands separator, and it puts a spinner on a field nobody wants to nudge by 1.
+ *
+ * The visible value is grouped in id-ID (250000 -> "250.000") while `form.amount` stays
+ * the raw digit string, so validation and any future POST never have to un-format it.
+ */
+const MAX_DIGITS = 12 // ~Rp 999 miliar; past this the input is a fat-finger, not a gift
+
+function onAmount(ev: Event) {
+  const el = ev.target as HTMLInputElement
+  const atEnd = el.selectionStart === el.value.length
+  const digits = el.value.replace(/\D/g, '').slice(0, MAX_DIGITS)
+  form.value.amount = digits
+  const shown = digits ? Number(digits).toLocaleString('id-ID') : ''
+  el.value = shown
+  // Typing at the end is the normal case; keep the caret there so grouping does not
+  // throw it back to the start on every keystroke.
+  if (atEnd) el.setSelectionRange(shown.length, shown.length)
+}
+
+const amountShown = computed(() =>
+  form.value.amount ? Number(form.value.amount).toLocaleString('id-ID') : '',
+)
+
+/*
  * Per FIELD rather than one line for the whole form: "Nama dan nominal wajib diisi" makes
- * the guest hunt for which box is wrong. Amount is checked as a NUMBER, not just as
- * non-empty — "seratus ribu" in an amount field is a transfer nobody can reconcile.
+ * the guest hunt for which box is wrong.
  */
 function validate() {
   const e: Record<string, string> = {}
   const f = form.value
   if (!f.name.trim()) e.name = 'Nama wajib diisi.'
   if (!f.owner.trim()) e.owner = 'Nama pemilik rekening wajib diisi.'
-  const digits = f.amount.replace(/[^\d]/g, '')
-  if (!f.amount.trim()) e.amount = 'Nominal wajib diisi.'
-  else if (!digits || Number(digits) <= 0) e.amount = 'Nominal harus berupa angka.'
+  if (!f.amount) e.amount = 'Nominal wajib diisi.'
+  else if (Number(f.amount) <= 0) e.amount = 'Nominal harus lebih dari nol.'
   errors.value = e
   return Object.keys(e).length === 0
 }
@@ -222,13 +249,15 @@ function back() {
       </div>
       <div class="gift__field">
         <input
-          v-model="form.amount"
           class="gift__in"
           :class="{ 'is-bad': errors.amount }"
           type="text"
           inputmode="numeric"
+          autocomplete="off"
           placeholder="Amount"
+          :value="amountShown"
           :aria-invalid="!!errors.amount"
+          @input="onAmount"
         />
         <span v-if="errors.amount" class="gift__ferr">{{ errors.amount }}</span>
       </div>
