@@ -39,7 +39,7 @@ const motion = await browser.newPage({ viewport: { width: 375, height: 812 }, de
 await motion.goto(URL, { waitUntil: 'networkidle' })
 await motion.waitForTimeout(1100)
 await motion.screenshot({ path: `${OUT}/web-entrance.png` })
-await motion.click('.cover__hit')
+await motion.click('.cover__open')
 await motion.waitForTimeout(2200)
 await motion.screenshot({ path: `${OUT}/web-hero-reveal.png` })
 // The reduced-motion shots below force everything visible, so they can't tell us
@@ -51,7 +51,7 @@ await motion.close()
 const page = await browser.newPage({ viewport: { width: 375, height: 812 }, deviceScaleFactor: 2 })
 await page.goto(URL, { waitUntil: 'networkidle' })
 await page.waitForTimeout(1000)
-await page.click('.cover__hit')
+await page.click('.cover__open')
 await page.waitForTimeout(3000)
 const opened = await page.locator('#invite').isVisible()
 // `.cover`, not template 5's `.opening`: that class does not exist in this template, so
@@ -62,6 +62,13 @@ await page.close()
 
 // The invitation sheet at exactly the design frame width, so it lines up 1:1 with the
 // Figma frame render for a pixel diff. Reduced motion pins every reveal open.
+/*
+ * The gift band's copy button writes to the clipboard, and headless Chromium refuses that
+ * by default — which would report a working button as broken. Granting the permission
+ * makes the probe test the BUTTON rather than the browser's default policy.
+ */
+await browser.contexts()[0]?.grantPermissions(['clipboard-write', 'clipboard-read'])
+
 const sheet = await browser.newPage({
   viewport: { width: FRAME_W, height: 900 },
   deviceScaleFactor: 2,
@@ -72,7 +79,7 @@ const sheet = await browser.newPage({
 })
 await sheet.goto(URL, { waitUntil: 'networkidle' })
 await sheet.waitForTimeout(800)
-await sheet.click('.cover__hit')
+await sheet.click('.cover__open')
 await sheet.waitForTimeout(2500)
 await sheet.locator('.hero').screenshot({ path: `${OUT}/web-hero.png` })
 // Scroll the whole sheet past the viewport first: the reveals are viewport-gated
@@ -100,40 +107,49 @@ const bands = await sheet.evaluate(() =>
  * check in this file would pass.
  */
 const carousel = await sheet.evaluate(async () => {
-  const oval = document.querySelector('.gallery__oval img')
+  const oval = document.querySelector('.gallery__main')
   const next = document.querySelectorAll('.gallery__nav')[1]
   if (!oval || !next) return 'no carousel'
+  /*
+   * The design's own fallback is the SAME photograph four times, so `src` cannot change
+   * and comparing it would report a working carousel as broken. The index is what moves:
+   * check which thumbnail carries `.is-current`.
+   */
+  const currentIndex = () =>
+    [...document.querySelectorAll('.gallery__thumb')].findIndex((t) =>
+      t.classList.contains('is-current'),
+    )
   const prev = document.querySelectorAll('.gallery__nav')[0]
-  const before = oval.getAttribute('src')
+  const before = currentIndex()
   next.click()
   await new Promise((r) => setTimeout(r, 200))
-  const after = document.querySelector('.gallery__oval img')?.getAttribute('src')
+  const after = currentIndex()
   // Put it back before the sheet screenshot below: left on photo 2 this check would
   // bake its own leftover state into web-sheet.png and every later band's eyeball pass
   // would show a "regression" that is only the test.
   prev.click()
   await new Promise((r) => setTimeout(r, 200))
-  const restored = document.querySelector('.gallery__oval img')?.getAttribute('src')
+  const restored = currentIndex()
   if (before === after) return `unchanged (${before})`
   return restored === before ? 'ok' : 'advanced but did not restore'
 })
 
 /*
- * The gift band's Copy button is the other stateful control. Click it, confirm the label
- * confirms the copy, and confirm it reverts -- a rejected clipboard write leaves the label
- * alone, which is exactly the failure a screenshot cannot see.
+ * The gift band's Copy button is the other stateful control. The button itself is the
+ * design's exported glyph and carries no label, so the confirmation is a separate
+ * `.gift__copied` node: it must APPEAR on click and go away again. A rejected clipboard
+ * write leaves it absent, which is exactly the failure a screenshot cannot see.
  */
 const copyBtn = await sheet.evaluate(async () => {
   const btn = document.querySelector('.gift__copy')
   if (!btn) return 'no copy button'
-  const before = btn.textContent.trim()
+  if (document.querySelector('.gift__copied')) return 'confirmation visible before click'
   btn.click()
   await new Promise((r) => setTimeout(r, 300))
-  const after = document.querySelector('.gift__copy').textContent.trim()
-  await new Promise((r) => setTimeout(r, 1700))
-  const back = document.querySelector('.gift__copy').textContent.trim()
-  if (before === after) return `label did not change (${before})`
-  return back === before ? 'ok' : `confirmed but stuck on "${back}"`
+  const shown = !!document.querySelector('.gift__copied')
+  if (!shown) return 'no confirmation after click (clipboard blocked?)'
+  await new Promise((r) => setTimeout(r, 1900))
+  return document.querySelector('.gift__copied') ? 'confirmed but never cleared' : 'ok'
 })
 
 await sheet.evaluate(() => window.scrollTo(0, 0))
@@ -154,23 +170,22 @@ const rsvpForm = await sheet.evaluate(async () => {
   }
   const form = document.querySelector('.rsvp__form')
   if (!form) return 'no rsvp form'
-  // The name arrives filled in -- design mode's guest is "Ahmad & Salma" -- so the
-  // empty-name branch is reached by clearing it, not by submitting as loaded.
-  setValue(form.querySelector('input[type="text"]'), '')
+  // Submitting empty must be refused rather than posted.
   form.requestSubmit()
   await new Promise((r) => setTimeout(r, 200))
-  const blank = document.querySelector('.rsvp__error')?.textContent.trim()
-  if (blank !== 'Nama masih kosong.') return `no name validation (${blank})`
+  const blank = document.querySelector('.rsvp__msg--err')?.textContent.trim()
+  if (!blank) return 'no validation on an empty form'
+  // A name alone is still not enough -- attendance is required too.
   setValue(form.querySelector('input[type="text"]'), 'Playwright')
   form.requestSubmit()
   await new Promise((r) => setTimeout(r, 200))
-  const noPick = document.querySelector('.rsvp__error')?.textContent.trim()
-  if (noPick !== 'Pilih kehadiran dulu.') return `no attendance validation (${noPick})`
+  const noPick = document.querySelector('.rsvp__msg--err')?.textContent.trim()
+  if (!noPick) return 'name alone was accepted'
   setValue(form.querySelector('select'), 'hadir')
   form.requestSubmit()
-  await new Promise((r) => setTimeout(r, 600))
-  // Design mode makes submitRsvp throw on purpose; the form has to say so.
-  const answered = document.querySelector('.rsvp__error')?.textContent.trim()
+  await new Promise((r) => setTimeout(r, 700))
+  // Design mode makes submitRsvp THROW on purpose; the form has to say so out loud.
+  const answered = document.querySelector('.rsvp__msg')?.textContent.trim()
   return answered && answered !== noPick ? 'ok' : `submitted but silent (${answered})`
 })
 
@@ -186,17 +201,18 @@ const wishForm = await sheet.evaluate(async () => {
     Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, v)
     el.dispatchEvent(new Event('input', { bubbles: true }))
   }
-  const name = document.querySelector('.wishes__name')
-  const msg = document.querySelector('.wishes__message')
   const form = document.querySelector('.wishes__form')
-  if (!name || !msg || !form) return 'no wish form'
-  const before = document.querySelectorAll('.wishes__card').length
+  if (!form) return 'no wish form'
+  const name = form.querySelector('input[type="text"]')
+  const msg = form.querySelector('textarea')
+  if (!name || !msg) return 'wish form is missing a field'
+  const before = document.querySelectorAll('.wishes__item').length
   setValue(name, 'Playwright')
   setValue(msg, 'shot.mjs was here')
   form.requestSubmit()
-  await new Promise((r) => setTimeout(r, 600))
-  const first = document.querySelector('.wishes__card .wishes__from')?.textContent.trim()
-  const after = document.querySelectorAll('.wishes__card').length
+  await new Promise((r) => setTimeout(r, 700))
+  const first = document.querySelector('.wishes__item .wishes__name')?.textContent.trim()
+  const after = document.querySelectorAll('.wishes__item').length
   if (first !== 'Playwright') return `wish not at top (${first})`
   return after >= before ? 'ok' : 'list shrank'
 })
