@@ -153,30 +153,30 @@ export function useWedding() {
     if (groom.value?.name && bride.value?.name) {
       return `${groom.value.name.split(' ')[0]} & ${bride.value.name.split(' ')[0]}`
     }
-    // Frame 2 prints "Ahmad & Salma", so an unconfigured render matches the design.
-    return 'Ahmad & Salma'
+    // Frame 8 prints "Waraney & Monika", so an unconfigured render matches the design.
+    return 'Waraney & Monika'
   })
 
   const quoteText = computed(
     () =>
       wedding.value?.theme_override?.quote?.text ||
-      // Matches the copy the design prints on the card, so an unconfigured
-      // render lines up with the design. Frame 1 (20:670) prints its own quotation
-      // marks, so they belong in the string rather than around the element.
-      '"Dan di antara tanda-tanda (kebesaran)-Nya ialah Dia menciptakan pasangan-pasangan untukmu dari jenismu sendiri, agar kamu cenderung dan merasa tenteram kepadanya, dan Dia menjadikan di antaramu rasa kasih dan sayang"',
+      // Matches the copy the design prints, so an unconfigured render lines up with
+      // it. Frame 9 (2130:615) prints this without quotation marks, so unlike
+      // template 6's verse there are none in the string.
+      'So they are no longer two but one flesh. Therefore what God has joined together, let no one separate',
   )
   /*
    * The hero's hashtag. Not read off `theme_override`: the API sends that as a JSON
    * STRING as often as an object (see applyTheme), so a dotted read there silently
-   * never matches. Frame 1 prints "#AhmadSALMAnya", so an unconfigured render matches
-   * the design.
+   * never matches. This design prints no hashtag anywhere in either frame, so the
+   * fallback is derived from the couple's names rather than copied off a band.
    */
-  const hashtag = computed(() => wedding.value?.hashtag || '#AhmadSALMAnya')
+  const hashtag = computed(() => wedding.value?.hashtag || '#WaraneyMonika')
 
-  // Frame 1 (20:669) prints the parentheses too, so they are part of the string; a
+  // Frame 9 (2130:615) prints the reference on its own line with no parentheses; a
   // configured verse arrives already formatted and is printed verbatim.
   const quoteVerse = computed(
-    () => wedding.value?.theme_override?.quote?.verse || '(Qs. Ar-Rum: 21)',
+    () => wedding.value?.theme_override?.quote?.verse || 'Matthew 19:6',
   )
   const quoteArabic = computed(
     () =>

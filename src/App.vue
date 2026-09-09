@@ -19,7 +19,7 @@ const contentVisible = ref(false)
  * the design instead of whatever wedding the default slug points at.
  */
 const guestName = computed(
-  () => new URLSearchParams(location.search).get('to') || guest.value?.name || 'Nama Tamu',
+  () => new URLSearchParams(location.search).get('to') || guest.value?.name || 'Nama Tamu Undangan',
 )
 const coupleName = coupleNickname
 

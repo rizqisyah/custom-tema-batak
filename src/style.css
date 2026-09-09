@@ -1,22 +1,63 @@
 /*
- * Placeholder families until the design's real faces are known. Every import here is a
- * font request: trim what this design does not use, and add what it does.
+ * The five faces this design actually uses, plus Jost for form chrome. Every import
+ * here is a font request, so this list is exactly the design's faces and nothing else.
  *
- * package.json carries a broader @fontsource set than these four — the faces the last
- * template needed. Import from it freely, and `npm rm` what this design never uses before
- * shipping. Anything NOT on fontsource is self-hosted; see the @font-face note below.
+ *   Instrument Serif    section headings — the design's own face
+ *   Ibarra Real Nova    guest block, body paragraphs — the design's own face
+ *   Crimson Text        button labels, card copy — the design's own face
+ *   Architects Daughter SUBSTITUTE for Figma Hand (see tokens.css)
+ *   Jost                form fields and small UI labels
  */
-@import "@fontsource/jost/400.css";
-@import "@fontsource/cormorant-infant/400.css";
+@import "@fontsource/instrument-serif/400.css";
 @import "@fontsource/ibarra-real-nova/400.css";
-@import "@fontsource/pinyon-script/400.css";
+@import "@fontsource/crimson-text/400.css";
+@import "@fontsource/crimson-pro/400.css";
+@import "@fontsource/roboto/400.css";
+@import "@fontsource/bellefair/400.css";
+@import "@fontsource/abhaya-libre/800.css";
+@import "@fontsource/jost/500.css";
+@import "@fontsource/jost/600.css";
+@import "@fontsource/jost/700.css";
+@import "@fontsource/architects-daughter/400.css";
+@import "@fontsource/jost/400.css";
 @import "./style/tokens.css";
 
 /*
- * Self-hosted faces go here: drop the file in src/assets/fonts/ and add an @font-face
- * block pointing at it. Record the license in a comment beside it — several of the
- * faces these templates use are demo cuts that are personal-use only.
+ * Self-hosted faces. Record the license beside each one — several of these are demo
+ * cuts that are personal-use only.
+ *
+ * Aurellie Calestion — SUBSTITUTE for the design's "Creattion Demo", which is not on
+ * fontsource and is not in the local font library. Picked by ink density + aspect
+ * against the render's own glyph ink (scripts/font-sweep.mjs over 126 faces, then
+ * scripts/font-pick.py): reference density 0.106 / aspect 7.32, this face 0.105 / 7.39
+ * — the closest of the 126 by a factor of two, and confirmed by eye against the render.
+ *
+ * LICENSE: demo/personal-use cut. Clear a commercial license, or swap in the licensed
+ * Creattion Demo, before this ships to a paying wedding. Swapping it back means
+ * RE-MEASURING the sizes and positions of every node in --font-script, not just
+ * changing this one src — see SLICING.md, "Retiring a substitute".
  */
+@font-face {
+  font-family: "Creattion Sub";
+  src: url("./assets/fonts/aurellie-calestion.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/*
+ * Cavilenny — the design's OWN face for the footer credit ("Created by 25ribuaja x
+ * Qinvi"), found in /Users/decoz/Downloads/Weddings/Font. Not a substitute: this is the
+ * face Figma names. LICENSE: check before shipping; it came from the same demo-heavy
+ * library as the script substitute.
+ */
+@font-face {
+  font-family: "Cavilenny";
+  src: url("./assets/fonts/CavilennyRegular-7OvVl.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
 
 /*
  * Every band of the body frame is the same shape: sliced art from BandArt.vue, and live
@@ -72,7 +113,44 @@
  * Only nodes that are ONE LINE IN THE DESIGN belong here. Wrapping paragraphs and nodes
  * carrying authored breaks (white-space: pre-line) must keep wrapping at their declared
  * width, and adding them here silently truncates the design's own line breaks.
+ *
+ * Verified by `FRAME_W=596 node scripts/oneline-audit.mjs`, which reads every text node's
+ * declared box out of the Figma dump, keeps the ones whose height is exactly one line, and
+ * fails if any of them renders as two in the build. "Thank You" was found this way: its
+ * box is 278 wide, the substitute set it wider, and the second line landed straight on the
+ * paragraph underneath it.
+ *
+ * NOT in this list, deliberately: .hero__kind (two lines in the design), and every
+ * pre-line node (.verse__couple, .ty__couple, .event__title, .ty__thanks, .bride__parents)
+ * which carries the design's own authored break.
  */
+.cover__eyebrow,
+.verse__eyebrow,
+.hero__couple,
+.bride__and,
+.savedate__title,
+.savedate__l,
+.event__day,
+.event__pukul,
+.event__at,
+.event__venue,
+.gallery__title,
+.memories__l1,
+.memories__l2,
+.gift__title,
+.gift__formhint,
+.gift__bank,
+.gift__num,
+.gift__name,
+.rsvp__title,
+.wishes__title,
+.wishes__name,
+.wishes__at,
+.ty__title,
+.ty__with,
+.ty__credit {
+  white-space: nowrap;
+}
 
 /*
  * Motion this large is exactly what a vestibular disorder cannot tolerate, so the

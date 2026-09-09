@@ -1,46 +1,117 @@
 :root {
   /* Theme hooks — useWedding() overwrites these from the API's theme_config. */
-  --maroon-title: #ad2124;
-  --maroon-text: #790707;
-  --gold: #ac6f28;
-  --bg-body: #f2ece1;
+  --maroon-title: #730303;
+  --maroon-text: #730303;
+  --gold: #fff2bc;
+  --bg-body: #fffce0;
 
-  /* colors — sample these off the design's own text fills once it is sliced. */
-  --paper: #f2ece1; /* the ground the COVER sits on */
+  /*
+   * colors — sampled off the design's own render, not guessed. The body frame paints
+   * #fffce0 across its whole height; the cover has no flat ground at all (a full-bleed
+   * photo bleeds past every edge), so --paper is only ever seen as the column's
+   * background behind the cover while the photo decodes.
+   */
+  --paper: #fffce0; /* the ground the COVER sits on */
   /*
    * The BODY frame's own fill. Sample it separately even when it looks identical to
    * --paper: compositing a band over the wrong ground biases every alpha
-   * scripts/solve_alpha.py fits. In template 6 the two were two counts per channel apart.
+   * scripts/solve_alpha.py fits. Here the two ARE the same value, measured, not assumed.
    */
-  --sheet: #f2ece1;
+  --sheet: #fffce0;
+
+  /* Ink. Every heading and paragraph on the sheet is this one grey, not black. */
+  --ink: #3f3f3f;
+  /* The deep Batak red: the cover button, the section bands, the ulos borders. */
+  --maroon: #730303;
+  /* The cream the maroon bands print their type in. */
+  --cream: #fff2bc;
+  /* The olive the form buttons use (Next / Send / Show more). */
+  --olive: #67764d;
 
   /*
-   * fonts — placeholders from @fontsource until the design's real faces are known.
-   * Self-hosted faces go in src/assets/fonts/ with an @font-face in style.css.
+   * fonts — one token per FACE, so retiring a substitute is a one-line change.
+   *
+   * The design uses five faces. Three are on fontsource and are the real thing:
+   *   Instrument Serif  — section headings ("Syukuran Pernikahan Adat Batak")
+   *   Ibarra Real Nova  — guest block, body paragraphs
+   *   Crimson Text      — the cover button label, card copy
+   *
+   * Two are NOT, and are SUBSTITUTED (see SLICING.md "Live text, and what stays as art"):
+   *   Creattion Demo — the big signature script ("Waraney & Monika", "Save the Date",
+   *     "Gallery Photo", "Reservation", "Thank You"). Not on fontsource and not in
+   *     /Users/decoz/Downloads/Weddings/Font. Substitute picked by ink density + aspect
+   *     against the render's own glyph ink (scripts/font-sweep.mjs + font-pick.py).
+   *   Figma Hand — the letterspaced handwriting ("The Wedding Of", "Surrounded by our
+   *     beloved families"). Figma's own bundled face, not licensable; substituted the
+   *     same way.
+   *
+   * Retiring either means RE-MEASURING, not just swapping the family — a substitute
+   * sets a different number of characters per line and its line boxes sit differently.
    */
-  --font-script: "Pinyon Script", cursive;
-  --font-display: "Ibarra Real Nova", serif; /* couple name */
-  --font-serif: "Ibarra Real Nova", serif; /* guest block */
-  --font-sans: "Jost", system-ui, sans-serif; /* UI labels */
-  --font-body: "Cormorant Infant", serif; /* body copy */
+  --font-script: "Creattion Sub", cursive; /* SUBSTITUTE: Aurellie Calestion, self-hosted */
+  --font-hand: "Architects Daughter", cursive; /* SUBSTITUTE for Figma Hand */
 
   /*
-   * One token per FACE. Template 6 shipped two tokens each standing in for two different
-   * faces and had to split them later; a token that names one face is the thing that makes
-   * retiring a substitute a one-line change.
+   * Substitute size deviations. A substitute does NOT draw the design's authored size —
+   * the same px value is a different ink height in a different face, and Creattion Demo
+   * in particular carries enormous internal headroom for its swashes. So every node in a
+   * substituted family multiplies the design's own size by its face's factor, and the
+   * design's number stays visible in the rule:
+   *
+   *   font-size: calc(136.67 * var(--px) * var(--script-k));
+   *
+   * Measured by ink box against the render, not guessed (SLICING.md trap 7).
+   *
+   * This DEFAULT is the SINGLE-LINE match: Figma sets "Waraney & Monika" at 75px in
+   * node 2129:593 and inks it 461px wide, and Aurellie inks 14.775px per size unit, so
+   * 461 / (75 * 14.775) = 0.416. Single-line headings are the common case on this sheet
+   * ("Save the Date", "Gallery Photo", "Reservation", "Thank You"...).
+   *
+   * It is NOT one number for the whole design. Trap 7's rule is width-match per WORD:
+   * one authored size becomes a different factor for each string, because per-glyph
+   * widths differ unevenly between two faces. The cover's TWO-line block measures 0.443
+   * and overrides this locally. Every new script node gets its own check against the
+   * frame render as its band is cut — do not assume this value carries.
+   *
+   * Width-match, not height-match: at either factor the substitute's descenders still
+   * run ~15px deeper than Creattion's, and that is the recorded deviation, not a defect.
+   *
+   * Architects Daughter needs almost no size correction (0.914) but sets 23% NARROWER
+   * than Figma Hand, because the design letterspaces that node; the width is paid back
+   * as letter-spacing at each use rather than by inflating the size.
+   *
+   * RETIRING a substitute means setting its factor to 1 AND re-measuring every position
+   * that was fitted around it — see SLICING.md, "Retiring a substitute".
    */
+  --script-k: 0.416;
+  --hand-k: 0.914;
+  --font-display: "Instrument Serif", serif; /* section headings */
+  --font-serif: "Ibarra Real Nova", serif; /* guest block, paragraphs */
+  --font-body: "Crimson Text", serif; /* button labels, card copy */
+  --font-sans: "Jost", system-ui, sans-serif; /* UI labels, form fields */
+  --font-prose: "Crimson Pro", serif; /* the gift band's paragraph — a different cut to --font-body */
+  --font-mono-label: "Roboto", system-ui, sans-serif; /* the small "Account Name" labels */
+  /*
+   * SUBSTITUTE for "Visia Pro" (Heavy / SemiBold) — a commercial geometric sans that is
+   * not on fontsource and not in the local library. Jost is the closest geometric grotesk
+   * already in this project, used at 700 for Heavy and 600 for SemiBold. Unlike the script
+   * faces this one needs no width factor: it is set in fixed-width boxes (card rows and
+   * form labels) where a few px of advance does not move anything else.
+   */
+  --font-visia: "Jost", system-ui, sans-serif;
 
   /*
-   * design frame reference — set these from the Figma frames before slicing anything.
+   * design frame reference — measured off the two Figma frames.
    *
    * --frame-w is LOAD-BEARING: InviteBody derives --px from it, so every band coordinate
-   * is read in this space. It is NOT the same across templates — 2-5 were 375 wide and 6
-   * was 596 — and the scripts read it as FRAME_W from the environment for the same reason.
-   * The 375 below is a placeholder that will silently render a wider frame at the wrong
-   * scale; replace it, do not inherit it.
+   * is read in this space. Both frames of this design are 596 wide (the same as
+   * template 6, and NOT the 375 of templates 2-5).
+   *
+   *   cover  Frame 8 (2129:2)   596 x 1183
+   *   body   Frame 9 (2129:12)  596 x 16159
    */
-  --frame-w: 375;
-  --frame-h: 725;
-  --body-h: 0;
+  --frame-w: 596;
+  --frame-h: 1183;
+  --body-h: 16159;
   --card-max: 430px;
 }
