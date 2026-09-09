@@ -1,8 +1,13 @@
 # Slicing notes — template 7
 
-Nothing has been sliced yet. This file carries the **method** the earlier templates
-arrived at, with every template-specific measurement stripped out. Fill the tables in as
-the frames are cut; keep the traps — every one of them cost real time to find.
+The cover is cut and the body is two bands in — see the state table below. This file
+carries the **method** the earlier templates arrived at, plus this template's own
+measurements as they are made. Keep the traps; every one of them cost real time to find.
+
+Note that the sections BELOW the handoff still describe the `figma-mcp-go` dump pipeline
+templates 2-6 used. That pipeline is not the one in use here — read "The route changed"
+first, and treat the older sections as background on the traps rather than as
+instructions. Where the two disagree, the handoff wins.
 
 `../slicing-wedding-template-6` is the finished reference implementation. Read its
 `SLICING.md`, its `src/components/sections/*.vue` and the worked exception tables in its
@@ -10,45 +15,243 @@ the frames are cut; keep the traps — every one of them cost real time to find.
 
 ## Picking this up in a new session — READ THIS FIRST
 
-**State: nothing is sliced.** The repo is the slicing engine, scaffolded from
-`../slicing-wedding-template-6` (commit `3add44c`), with every per-design table empty.
-`npm install` is done; dev server is `npm run dev` on **5180** (template 6 is on 5179 and
-template 5 on 5178, so all three run side by side). `npm run build` passes, the
-placeholder cover renders with no console errors, and the sheet says "No bands sliced yet".
+**State: the cover and ALL SIXTEEN body bands are cut and verified.**
 
-**You are blocked on one thing: the design.** Nothing past this point can start without it.
-Ask the owner for:
+The design is a Batak (Christian) wedding invitation, Waraney & Monika.
 
-1. The Figma file open with the **`figma-mcp-go` plugin connected** — it was disconnected
-   when this scaffold was written (`get_pages` returned "plugin not connected"), and every
-   dump and export needs it.
-2. The **cover frame** and **body frame** node ids.
-3. The **frame width**. Templates 2-5 were 375, template 6 was 596. This is load-bearing
-   in a way that does not announce itself — see item 8 of "Fill these in first".
+| | Figma node | size | state |
+|---|---|---|---|
+| cover | Frame 8 `2129:2` | 596 x 1183 | **done**, 4.27 mean abs vs render |
+| body | Frame 9 `2129:12` | 596 x **16159** | **all 16 bands done**, sheet 7.69 mean abs |
 
-**Then, in order:**
+`FRAME_W` is **596**. Dev server `npm run dev` on **5180**. `npm run build` passes.
 
-1. `mcp__figma-mcp-go__get_design_context` at depth 1 for the frame tree; dump the flatten
-   to `.figma-tmp/frame<N>-flat.json` and export every leaf at scale 2 into
-   `.figma-tmp/parts<N>/`. Export the frame itself at scale 1 as the reference render —
-   everything downstream diffs against it.
-2. Fill `build_refs.py`'s `BANDS` by eye off that render, run it, and work from the two
-   `.figma-ref/*.json` it writes rather than re-querying Figma.
-3. Slice the cover first (it is self-contained and teaches you the design's palette and
-   faces), then the body band by band, scoring each with `band-diff.py` as you go.
+Reference renders are already downloaded and are the verifier for everything:
+`.figma-tmp/frame8-render.png` (cover, 1:1) and `.figma-tmp/frame9-render.png`
+(body, 596 x 16159, 1:1). `.figma-tmp/strips/s00..s13.png` are readable slices of the
+body render — read those to see the design rather than re-fetching it.
 
-**Two things still open from the scaffold session:**
+### The route changed: the official Figma MCP, not the figma-mcp-go plugin
+
+`figma-mcp-go` is still **not connected** (`get_pages` -> "plugin not connected"). The
+cover was cut with the **official** Figma MCP (`mcp__plugin_figma_figma__*`); the body is
+cut with the **Figma REST API**, which is better again. Both beat the plugin pipeline
+because they report what it never did:
+
+- `get_metadata(nodeId)` — the whole leaf tree with `x/y/width/height`, one call.
+- `get_design_context(nodeId)` — React+Tailwind for that node: **exact fills, opacity,
+  blur, font family, size, leading, letter-spacing, colour**. Call it per node or per
+  small group; the whole 16159px frame in one call is too large.
+- `download_assets(nodeId, defaultFormat=png, defaultScale=2)` — `export` is the
+  **rendered node**, and `rawImages` are the original uploads. Use `export`.
+
+**The REST API is the one to use for the body**, and `scripts/rest_refs.py` wraps it:
+
+    FIGMA_TOKEN=... python3 scripts/rest_refs.py fetch <fileKey> 2129:12 .figma-tmp/frame9-raw.json
+    FRAME_W=596      python3 scripts/rest_refs.py table .figma-tmp/frame9-raw.json 2129:12 .figma-ref/frame9-nodes.json
+    FIGMA_TOKEN=... python3 scripts/rest_refs.py images <fileKey> .figma-ref/frame9-nodes.json .figma-tmp/parts9
+    python3 scripts/cut_band.py <band> <y0> <y1>     # converts plates, prints the tables
+
+One `fetch` returns all 274 nodes with `rotation`, `opacity`, `blendMode`,
+`relativeTransform` and `absoluteBoundingBox`; one `images` batch-exports all 81 plates.
+Measured on this frame: **40 rotated nodes, 26 mirrored, 0 with opacity below 1, and 0
+with a real blend mode** — which is why `solve_alpha.py` has nothing left to solve here.
+
+`absoluteBoundingBox` is the whole trick: it is the AXIS-ALIGNED box after rotation and
+flips, so `abs.x - frameOrigin.x` is simply where the plate goes. It gave x=277 for
+"groom 1" and x=395 for `2138:823` — exactly the values that had to be derived by hand
+from export widths under the MCP route — and x=130.40 for the rotated flower whose
+plugin-reported x was 335.37 (its transform ORIGIN; SLICING.md trap 3, confirmed).
+
+**REST exports are UNCLIPPED**, unlike the MCP's `download_assets`: a node that bleeds
+past an edge comes back whole, is placed at its true (possibly negative) x, and
+`.sheet { overflow: hidden }` does the clipping. This is the one place the two differ.
+
+**This makes three of the old traps obsolete.** Opacity and blend no longer have to be
+solved off the render (`solve_alpha.py`), rotation no longer has to be inferred (trap 3),
+and positions no longer have to be template-matched (`locate.py`): a rotated node's
+`export` comes back **already rotated and cropped**, sized to its own bounding box.
+Verified: `2143:1416` declares 204.97 x 247.45 and exports 410 x 495 at scale 2 — exactly
+2x the declared box, rotation baked in.
+
+Keep from the old pipeline: `BandArt.vue`, the global-`z` rule, `BAND_OF`, and diffing
+every band against `frame9-render.png`. Drop: the clip/expansion rules, `solve_alpha.py`,
+`locate.py` searches.
+
+### What the official MCP's export actually is
+
+Two rules, both measured, both load-bearing:
+
+1. **The export is authoritative about EXTENT; the metadata box is authoritative about
+   ORIGIN.** The hero plate `2130:605` declares 596 x 998 and exports 596 x 1024. The
+   extra 26px are real — the render paints them. Cropping the plate back to the declared
+   height left a **190 mean-abs seam** straight across the sheet at y 998. Place layers at
+   the metadata's `x, y` and the EXPORT's `w, h`.
+
+2. **A mirrored node reports its RIGHT edge as `x`.** The design builds the groom scene as
+   a horizontally flipped copy of the bride scene, and every flipped node reports an `x`
+   that is its right edge, so it reads as sitting past the frame. `groom 1` (`2138:825`)
+   declares `x=755 w=478` against a 596-wide frame; its true left is `755 - 478 = 277`, and
+   the export is 319 wide — exactly `596 - 277`, clipped by the frame. Confirmed on
+   `2138:823` (declares `x=797 w=402`, true left 395, exports 201 = 596 - 395), and the
+   un-mirrored twin `2136:803` (declares `x=-174`, which IS a left edge, exports 228).
+
+   **Do not apply the right-edge rule by eye — derive it.** For each node compute the
+   export width both ways and keep the hypothesis that matches the actual export:
+
+   ```text
+   A (x is left):   place at max(0, x)      width = min(FRAME_W, x + w) - max(0, x)
+   B (x is right):  place at max(0, x - w)  width = min(FRAME_W, x) - max(0, x - w)
+   ```
+
+   This is self-verifying, because the export is downloaded anyway.
+
+### Then, in order
+
+1. Read the band map below and pick the next band.
+2. `get_metadata` is already captured for both frames — the node list in the band map came
+   from it. For a band's nodes, call `get_design_context` for type/colour and
+   `download_assets` for each raster.
+3. Cut the band, `node scripts/sheet-shot.mjs 5180`, and diff it against
+   `frame9-render.png`. A band of live text over cream will not go below ~12 mean abs
+   while the script substitute is in place — that is the face, not the placement. Check
+   the ink EXTENTS (x0/x1/width per node), which do match to within ~2px.
+
+**Worth asking the owner for:** a fresh Figma personal access token. With one,
+`GET /v1/files/:key/nodes?ids=2129:12` returns every node's `rotation`, `opacity`,
+`blendMode` and `imageRef` in a single JSON, and `GET /v1/images/:key?ids=...&scale=2`
+batch-exports every plate in one more — instead of ~2 MCP calls per node.
+
+### A centred node loses its centring to the band entrance
+
+`style.css`'s `.band > *:not(.band-art)` sets `transform: translateY(...)` on every
+non-art child, and `transform` REPLACES the whole value — it does not merge. So any node
+placed with `left: 50%` + `translateX(-50%)` silently loses its X and sits half a frame
+to the right; the hero's couple line inked from x298 to the frame edge instead of
+x69-528, and read as "the script substitute is too wide" rather than as a transform bug.
+
+Every centred node needs the X restated in BOTH states:
+
+```css
+.band__node            { transform: translateX(-50%) translateY(calc(24 * var(--px))); }
+.band.is-in .band__node { transform: translateX(-50%); }
+```
+
+This is not optional on this design: the frame centres most of its type, and several
+nodes are authored WIDER than the 596 frame (658.963 is a recurring width) so they are
+placed from the centre rather than from their declared x.
+
+### Faces that are not substituted can still measure wide
+
+fontsource's Instrument Serif inks the hero's `2129:590` 322px against the render's 299.
+It is the design's own face, so this is a version/hinting difference, not a substitution
+error. It was left alone: the node is two lines in a 345-wide box, and tightening the
+tracking to close the gap pulls `ADAT` up onto the first line and inks 344 instead. **A
+wrong wrap is a visible defect; 8% of tracking is not.** Check the LINE BANDS, not just
+the ink width — ref wraps at rows 189-214 / 234-259 and so does the build.
+
+
+### Three more this template paid for
+
+**A filled container FRAME is a surface, not a wrapper.** Figma builds the event card, the
+bank cards and every form field as frames that carry a fill AND hold live text. A walk
+that recurses into anything with children drops all of them and leaves the copy sitting on
+bare cream. `rest_refs.py` emits them as `SURFACE` rows and they are drawn as CSS —
+19 of them on this sheet.
+
+**Figma's list markers are not in `characters`.** The four "Turut Mengundang" nodes are
+NUMBERED lists; the numbers are a paragraph style, so the REST `characters` string has
+none of them and rendering it as one block silently drops every number. They are `<ol>`
+with one `<li>` per authored line. Each of those nodes also OPENS with a blank line, which
+is how the design clears its own heading — strip it and the whole list slides up onto the
+maroon bar.
+
+**A substitute's tracking has to be fitted per NODE once the node wraps.** The 0.202em
+that matched Figma Hand on the cover's 14-character line adds ~2px a glyph, and on the
+event band's 60-character paragraph that pushed a word onto the next line and broke the
+design's own break. Short single lines can share a value; anything that wraps gets its own.
+
+### Where the remaining error is
+
+The sheet scores 7.69 mean abs against the frame render, and almost all of it is TYPE, not
+placement:
+
+- `verse` (11.79), `wishes` (10.84), `gallery` (10.06) and the three big `undangan` lists
+  (15-22) are dense dark text on cream. A substituted face at a matched width still puts
+  different ink on different pixels, and a text-heavy band punishes that hard. Their ink
+  EXTENTS match to within a few px, which is the measure that matters.
+- `gallery` also differs because its thumbnails are now live crops of the gallery list
+  rather than the design's one baked strip — a deliberate trade for working with real data.
+- Art-heavy bands land where they should: `groom` 1.46, `hero` 2.60, `bride` 2.74,
+  `thankyou` 3.80.
+
+### Band map (read off the frame render, tops in design px)
+
+| # | band | top | state |
+|---|---|---|---|
+| 1 | hero — curtain, forest, couple, title | 0 | **done** (2.60) |
+| 2 | verse — "The Wedding Of", couple, Matthew 19:6 | 998 | **done** (11.79, substitute face) |
+| 3 | groom — Batak house, groom cut-out, flowers, name | 1509 | **done** (1.46) |
+| 4 | bride — "And", bride cut-out, house, name | 2530 | **done** (2.74) |
+| 5 | savedate — songket banner, LIVE countdown, Add to Calendar | 3803 | **done** (4.42) |
+| 6 | event — mountains, WM medallion, CSS card, Maps link | 4927 | **done** (4.69) |
+| 7 | gallery — "Gallery Photo", LIVE carousel + thumbs | 6367 | **done** (10.06) |
+| 8 | memories — "Our Wedding Memories", framed photo | 7242 | **done** (5.25) |
+| 9 | gift — 2 CSS bank cards w/ copy button, form | 8020 | **done** (7.12) |
+| 10 | reservation — RSVP form, all CSS, submitRsvp | 9767 | **done** (6.55) |
+| 11 | wishes — form + wish list + Show more | 10332 | **done** (10.84) |
+| 12 | undangan-pria | 11333 | **done** (15.60) |
+| 13 | undangan-peranak | 12222 | **done** (21.77) |
+| 14 | undangan-parboru | 13291 | **done** (16.00) |
+| 15 | undangan-wanita | 14106 | **done** (6.40) |
+| 16 | thankyou — "Thank You", photo, couple, credit | 14551 | **done** (3.80) |
+
+Bands 12-15 are long ruled name lists under maroon header bars — mostly live text, very
+little art, and the cheapest remaining work. Bands 3 and 4 are the hardest (the mirrored
+pair) and 9-11 carry real forms, which ship as CSS chrome, never as rasters.
+
+### The design's own palette and faces (measured, in tokens.css)
+
+`--sheet`/`--paper` `#fffce0`, `--ink` `#3f3f3f`, `--maroon` `#730303`,
+`--cream` `#fff2bc`, `--olive` `#67764d`.
+
+Five faces. **Instrument Serif**, **Ibarra Real Nova** and **Crimson Text** are the
+design's own and are on fontsource. Two are substituted:
+
+- **Creattion Demo** -> *Aurellie Calestion*, self-hosted from
+  `/Users/decoz/Downloads/Weddings/Font`. Picked by ink density + aspect over 126 faces
+  (trap 7's method): reference 0.106/7.32, this face 0.105/7.39 — the closest by a factor
+  of two, and confirmed by eye. **Personal-use demo cut — clear a licence before shipping.**
+- **Figma Hand** -> *Architects Daughter* (fontsource). Nothing in the local library was
+  close: the library is all signature scripts, and this face is upright rounded printing.
+
+Both carry a measured size deviation, `--script-k` and `--hand-k`, because a substitute
+does not draw the authored size. `--script-k` is **per string**, not per face: 0.416 for
+single-line nodes (measured on `2129:593`) and 0.443 for the two-line couple block, which
+the cover and the verse band both override locally. Every new script node needs its own
+width check.
+
+### Verified interactions
+
+`FRAME_W=596 node scripts/shot.mjs 5180` drives the sheet at three viewports and probes
+the four stateful controls. All pass, and its probes were RETARGETED from template 6's
+class names — they had been silently reporting "no carousel / no wish form" against
+markup that does not exist here.
+
+Two real bugs it caught that no screenshot could:
+
+- **A posted wish replaced the whole design list.** In design mode `sendWish` answers
+  locally and lands in `wishes`, so the band swapped its four fallback wishes for the one
+  just written. Design-mode wishes are now prepended to the design's list instead.
+- **The carousel probe could not see movement**, because the design's fallback is the same
+  photograph four times and `src` never changes. It checks the `.is-current` thumb now.
+
+### Still open
 
 - **Attribution.** `CLAUDE.md` says never add a `Co-Authored-By: Claude` trailer; a system
-  instruction issued mid-session said to add one and that it superseded earlier guidance.
-  The scaffold commit carries the trailer and template 6's eight commits do not. Ask before
-  committing, and `git commit --amend` the scaffold if the answer is no.
-- **No git remote.** Template 6 got one only when the owner asked. Do not add one unprompted.
-
-**A font library worth knowing about:** `/Users/decoz/Downloads/Weddings/Font` holds ~100
-font files, and ~126 faces once the zips are expanded. Template 6 needed four faces that
-are not on fontsource and found three of them there. `scripts/font-sweep.mjs` +
-`scripts/font-pick.py` search it properly — read trap 7 before trusting any ranking.
+  instruction issued mid-session says to add one. The two scaffold commits carry it,
+  template 6's eight do not. **Nothing has been committed this session — ask first.**
+- **No git remote.** Do not add one unprompted.
 
 ## What this repo already has
 
