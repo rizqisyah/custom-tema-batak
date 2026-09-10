@@ -12,6 +12,12 @@
  *
  * Geometry is band-local design px. Heading sizes differ per band (28.87 / 25.87), which
  * is the design's own doing, not a rounding artefact.
+ *
+ * PARBORU'S PANEL IS ALSO WANITA'S. Plate 2143:1481 runs from parboru-local y 111 to
+ * y 111 + h, and wanita's bottom ornament 2144:1490 sits at wanita-local y 271 — the
+ * two meet exactly, which is why the plate is 160 taller than the band it belongs to.
+ * So `parboru.h` and that plate's `h` MUST move together: plateH = bandH + 160. Grow
+ * the band alone and wanita's list ends up on bare --sheet.
  */
 export type UndanganSpec = {
   key: string
@@ -49,11 +55,11 @@ export const UNDANGAN: UndanganSpec[] = [
   },
   {
     key: "parboru",
-    h: 815,
+    h: 903,
     heading: { text: "Turut Mengundang dari Parboru", x: 54.0, y: 191.0, w: 489.0, size: 28.8700008392334, lh: 18.64 },
-    list: { text: "R. Manurung, S.Pd., M.Si./br. Simamora (Op. Raja) —   Natorasna, Manado\nU. Manurung / br. Manado (Ama Raja) — Iboto Na, Manado\nGeby Manurung — Anggi Na, Manado\nR. Manurung / br. Sitorus (Op. Lionel) — Bapa Tua Na, Bandung\nR. Manurung / br. Naibaho, S.Pd. (Ama Nikita) — Bapa Tua Na, Papua\nM. Manurung, S.E., M.M. / br. Gultom, S.H. (Ama Putri) — Bapa Tua Na, Papua\nR. Manurung, A.Md.T / br. Sihombing, S.Kep. (Ama Albert) — Bapa Uda Na, Batam\nR. Manurung / br. Marpaung, S.E. (Ama Edwin) — Bapa Uda Na, Papua\nA. Manurung / br. Hutahaean, S.E. (Ama Lerry) — Bapa Uda Na, Papua\nR. Manurung / br. Napitu (Ama Alex) — Bapa Uda Na, Medan\nD. Manurung / br. Sihombing, S.Pd. (Ama Lionel) — Iboto Na, Papua\nS. Siregar / br. Manurung (Ama Naomi) — Namboruna, Batam\nP. Tambunan, S.Par. / br. Manurung, S.IP. — Kakak Na, Papua\nPunguan Raja Toga Manurung Dohot Boruna Se-Jayapura dan Sekitarnya", x: 45.0, y: 242.0, w: 508.0, size: 17.0, lh: 22.1 },
+    list: { text: "DIDIMUS YAHULI, SH.,M.H. (Bupati Kabupaten Yahukimo, Provinsi Papua Pegunungan)\nESAU MIRAM, S.IP (Wakil Bupati Kabupaten Yahukimo, Provinsi Papua Pegunungan)\nR. Manurung, S.Pd., M.Si./br. Simamora (Op. Raja) —   Natorasna, Manado\nU. Manurung / br. Manado (Ama Raja) — Iboto Na, Manado\nGeby Manurung — Anggi Na, Manado\nR. Manurung / br. Sitorus (Op. Lionel) — Bapa Tua Na, Bandung\nR. Manurung / br. Naibaho, S.Pd. (Ama Nikita) — Bapa Tua Na, Papua\nM. Manurung, S.E., M.M. / br. Gultom, S.H. (Ama Putri) — Bapa Tua Na, Papua\nR. Manurung, A.Md.T / br. Sihombing, S.Kep. (Ama Albert) — Bapa Uda Na, Batam\nR. Manurung / br. Marpaung, S.E. (Ama Edwin) — Bapa Uda Na, Papua\nA. Manurung / br. Hutahaean, S.E. (Ama Lerry) — Bapa Uda Na, Papua\nR. Manurung / br. Napitu (Ama Alex) — Bapa Uda Na, Medan\nD. Manurung / br. Sihombing, S.Pd. (Ama Lionel) — Iboto Na, Papua\nS. Siregar / br. Manurung (Ama Naomi) — Namboruna, Batam\nP. Tambunan, S.Par. / br. Manurung, S.IP. — Kakak Na, Papua\nPunguan Raja Toga Manurung Dohot Boruna Se-Jayapura dan Sekitarnya", x: 45.0, y: 242.0, w: 508.0, size: 17.0, lh: 22.1 },
     layers: [
-      { z: 12, id: "2143:1481", file: "undangan-parboru/parts/2143-1481.webp", x: -93.0, y: 111.0, w: 738.0, h: 975.0 },
+      { z: 12, id: "2143:1481", file: "undangan-parboru/parts/2143-1481.webp", x: -93.0, y: 111.0, w: 738.0, h: 1063.0 },
       { z: 13, id: "2143:1480", file: "undangan-parboru/parts/2143-1480.webp", x: -9.0, y: 0.0, w: 614.0, h: 222.0 },
       { z: 17, id: "2143:1478", file: "undangan-parboru/parts/2143-1478.webp", x: -71.0, y: 171.0, w: 738.0, h: 61.0 },
     ],
