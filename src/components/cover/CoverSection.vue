@@ -78,18 +78,28 @@ const coupleLines = computed(() => props.coupleName.replace(/\s*&\s*/, '\n  & ')
 
 /*
  * One design pixel = 100cqw / 596, so the composition scales as a unit instead of
- * reflowing. Width is driven by the viewport height so the card fills the screen;
- * `max()` rather than the bare height-derived width because Safari's dvh excludes the
- * toolbars, which would leave a gutter down both sides. `.cover` crops the overflow.
+ * reflowing. Width is driven PURELY by the viewport height, so the whole 596 x 1183
+ * frame always fits the screen.
+ *
+ * It used to be `max(100%, ...)`, to stop a narrow frame leaving a gutter down both
+ * sides on a viewport whose dvh excludes the browser toolbars. That max is what hid the
+ * Open Invitation button: whenever 100% won, the frame grew TALLER than the viewport and
+ * the bottom 60-143px — the button sits at design y 1032 of 1183 — was cropped away with
+ * no way to scroll to it, because the cover locks scrolling while it owns the screen.
+ * Measured on iPhone-sized viewports: 393x659, 390x664 and 375x553 all cut it.
+ *
+ * The gutter is paid for by BLEED instead, which costs nothing: the photograph is 919
+ * design px against the frame's 596 — 1.54x — so it covers any viewport up to that ratio
+ * on its own. `overflow` is therefore left visible here and `.cover` does the clipping.
+ * `container-type: inline-size` applies LAYOUT containment, not paint containment, so
+ * the overspill is still painted.
  */
 .cover__frame {
   container-type: inline-size;
   position: relative;
   flex: 0 0 auto; /* or the 430px desktop column squashes the width-driven frame back down */
-  overflow: hidden;
-  width: max(100%, calc(100dvh * 596 / 1183));
+  width: calc(100dvh * 596 / 1183);
   aspect-ratio: 596 / 1183;
-  background: var(--paper);
 }
 
 .cover__frame > * {
