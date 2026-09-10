@@ -39,11 +39,14 @@ const LAYERS: BandLayer[] = [
     <BandArt :layers="LAYERS" :shown="shown" />
 
     <!--
-      2129:590 — TWO lines in the design ("SYUKURAN PERNIKAHAN" / "ADAT BATAK"), which is
-      why its declared box is 91px tall against a 45.5px leading. It must keep wrapping at
-      its declared width, so it is NOT in style.css's one-line list.
+      2129:590 — TWO lines in the design ("UNDANGAN SYUKURAN" / "PERNIKAHAN ADAT BATAK"),
+      which is why its declared box is 91px tall against a 45.5px leading.
+      The break is authored as a <br> rather than left to the box's 345px width: the
+      second line inks ~344 of those 345 in fontsource's Instrument Serif, so a fraction
+      of a rounded pixel at an arbitrary viewport tips it to three lines and the couple
+      name below it gets a caps line dropped on top of it. `nowrap` pins each half.
     -->
-    <p class="hero__kind">Syukuran Pernikahan Adat Batak</p>
+    <p class="hero__kind">Undangan Syukuran<br />Pernikahan Adat Batak</p>
 
     <!--
       2129:593 — the document's real <h1> once the cover has unmounted (see App.vue).
@@ -72,11 +75,12 @@ const LAYERS: BandLayer[] = [
   line-height: calc(45.5 * var(--px));
   text-transform: uppercase;
   /*
-   * Left at the design's own tracking. fontsource's Instrument Serif inks this string
-   * 322px against the render's 299 — ~8% wide — but the node is TWO lines in a 345-wide
-   * box, and tightening the tracking to close that gap pulls "ADAT" up onto the first
-   * line and inks 344 instead. A wrong wrap is a visible defect; 8% of tracking is not.
+   * Left at the design's own tracking. fontsource's Instrument Serif inks ~8% wide of the
+   * render, which used to risk pulling a word onto the wrong line; now that the break is
+   * authored the overspill just centres itself either side of the node's axis, which is
+   * where text-align: center puts it and what the rest of the sheet does too.
    */
+  white-space: nowrap;
   color: #fff;
 }
 
