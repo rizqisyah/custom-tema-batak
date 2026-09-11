@@ -3,7 +3,7 @@
  * Menghubungkan frontend langsung ke Web App Google Apps Script
  */
 
-export const GSCRIPT_URL = ("https://script.google.com/macros/s/AKfycbz9-hYp_D6GZHRWmeGWITNAnPOAJOFYn-Yp92DQGIvj8kRurSKtIzRXazt_D8KiAYWB/exec" || '').trim()
+export const GSCRIPT_URL = (import.meta.env.VITE_GSCRIPT_URL || '').trim()
 
 export function isGScriptConfigured(): boolean {
   return Boolean(GSCRIPT_URL && GSCRIPT_URL.startsWith('http'))
