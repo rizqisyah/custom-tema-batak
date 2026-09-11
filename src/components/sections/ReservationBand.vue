@@ -17,8 +17,7 @@
  */
 import { ref } from 'vue'
 import { useReveal } from '../../composables/useReveal'
-import { submitRsvp } from '../../lib/api'
-import { resolveSlug } from '../../lib/api'
+import { submitRsvpGAS } from '../../lib/gscript'
 
 const { el, shown } = useReveal()
 
@@ -34,14 +33,15 @@ async function send() {
   }
   state.value = 'sending'
   try {
-    await submitRsvp(resolveSlug(), {
-      nama: form.value.nama,
-      no_hp: form.value.hp,
+    await submitRsvpGAS({
+      nama: form.value.nama.trim(),
+      no_hp: form.value.hp.trim(),
       hadir: form.value.hadir,
       jumlah: Number(form.value.jumlah) || 1,
     })
     state.value = 'done'
-    message.value = 'Terima kasih, konfirmasi kamu sudah kami terima.'
+    message.value = 'Terima kasih, konfirmasi kehadiran Anda sudah kami terima.'
+    form.value = { nama: '', hp: '', hadir: '', jumlah: '' }
   } catch (e) {
     state.value = 'error'
     message.value = e instanceof Error ? e.message : 'Gagal mengirim, coba lagi.'

@@ -67,7 +67,7 @@ export const UNDANGAN: UndanganSpec[] = [
   {
     key: "wanita",
     h: 445,
-    heading: { text: "Turut Mengundang Wanita", x: 54.0, y: 20.0, w: 489.0, size: 25.8700008392334, lh: 18.64 },
+    heading: { text: "Turut mengundang dari Kel.Tangapo", x: 54.0, y: 20.0, w: 489.0, size: 25.8700008392334, lh: 18.64 },
     list: { text: "Tangapo Kaumpungan — Bapatua, Manado\nTangapo Jacob — Bapatua, Manado\nTangapo Josep — Bapatua, Manado\nTangkere Tangapo — Bapatua, Manado\nTangapo Loho — Bapatua, Manado\nKoolang Tangapo — Bapatua, Manado\nTangapo Manopo — Bapaade, Manado", x: 54.0, y: 61.0, w: 508.0, size: 17.0, lh: 22.1 },
     layers: [
       { z: 11, id: "2144:1490", file: "undangan-wanita/parts/2144-1490.webp", x: -110.0, y: 271.0, w: 798.0, h: 225.0 },

@@ -32,6 +32,7 @@ import { assets } from '../../lib/bandAssets'
 import type { BandLayer } from '../../lib/bandLayer'
 import { useReveal } from '../../composables/useReveal'
 import { useWedding } from '../../composables/useWedding'
+import { submitGiftGAS } from '../../lib/gscript'
 
 const { el, shown } = useReveal()
 const { gift } = useWedding()
@@ -179,12 +180,38 @@ onBeforeUnmount(() => {
   if (preview.value) URL.revokeObjectURL(preview.value)
 })
 
-function confirm() {
+const sending = ref(false)
+const sendError = ref('')
+
+async function confirm() {
   if (!proof.value) {
     fileError.value = 'Unggah bukti transfer dulu.'
     return
   }
-  sent.value = true
+  
+  sending.value = true
+  fileError.value = ''
+  sendError.value = ''
+
+  try {
+    const targetBank = accounts.value[0]?.bank || 'Bank Transfer'
+    await submitGiftGAS({
+      name: form.value.name.trim(),
+      bank: targetBank,
+      owner: form.value.owner.trim(),
+      amount: form.value.amount,
+      message: form.value.message.trim(),
+      file: proof.value,
+    })
+
+    sent.value = true
+    clearProof()
+    form.value = { name: '', owner: '', message: '', amount: '' }
+  } catch (err) {
+    sendError.value = err instanceof Error ? err.message : 'Gagal mengirim bukti transfer.'
+  } finally {
+    sending.value = false
+  }
 }
 
 function back() {
@@ -308,9 +335,12 @@ function back() {
         <button class="gift__clear" type="button" @click="clearProof">ganti</button>
       </p>
       <p v-if="fileError" class="gift__msg gift__msg--err" role="alert">{{ fileError }}</p>
+      <p v-if="sendError" class="gift__msg gift__msg--err" role="alert">{{ sendError }}</p>
 
       <!-- 2141:1313 — olive, radius 23. -->
-      <button class="gift__confirm" type="button" @click="confirm">Confirm</button>
+      <button class="gift__confirm" type="button" :disabled="sending" @click="confirm">
+        {{ sending ? 'Mengunggah & Mengirim…' : 'Confirm' }}
+      </button>
 
       <p v-if="sent" class="gift__msg" role="status">
         Terima kasih — bukti transfer sudah kami terima.
@@ -628,6 +658,7 @@ function back() {
 }
 
 .gift__confirm:hover { filter: brightness(1.08); }
+.gift__confirm:disabled { opacity: 0.7; cursor: not-allowed; }
 
 .gift__step2 .gift__msg { top: calc(534 * var(--px)); }
 </style>

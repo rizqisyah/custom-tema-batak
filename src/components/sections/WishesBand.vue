@@ -16,54 +16,71 @@
  * a module ref rather than in `state.data`, so the other bands do not lose their own
  * design fallbacks the moment someone submits here.
  */
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useReveal } from '../../composables/useReveal'
-import { useWedding } from '../../composables/useWedding'
-import { DESIGN_MODE } from '../../lib/api'
+import { fetchWishes, sendWishGAS, isGScriptConfigured } from '../../lib/gscript'
+import type { WishItem } from '../../lib/gscript'
 
 const { el, shown } = useReveal()
-const { wishes, sendWish } = useWedding()
 
-const DESIGN_WISHES = [
-  { name: 'Satrio & Istri', at: '09 June 2025, 09:00' },
-  { name: 'Satrio & Istri', at: '09 June 2025, 09:00' },
-  { name: 'Satrio & Istri', at: '09 June 2025, 09:00' },
-  { name: 'Keluarga Sianturi', at: '09 June 2025, 10:20' },
-].map((w) => ({
-  ...w,
-  text:
-    'Wishing you a lifetime filled with endless love, gentle laughter, and countless ' +
-    'beautiful moments together. Happy Wedding!',
-}))
+// Default list ucapan KOSONG (tidak ada dummy atau komentar bawaan)
+const liveWishes = ref<WishItem[]>([])
+let pollTimer: ReturnType<typeof setInterval> | null = null
 
-const all = computed(() => {
-  const live = (wishes.value as any[] | null) ?? []
-  const mapped = live
-    .map((w) => ({
-      name: w?.guest_name || w?.nama || w?.name || 'Tamu',
-      at: w?.created_at ? new Date(w.created_at).toLocaleString('en-GB') : '',
-      text: w?.message || w?.ucapan || '',
-    }))
-    .filter((w) => w.text)
-  if (!mapped.length) return DESIGN_WISHES
-  /*
-   * In DESIGN MODE a posted wish is answered locally and lands in `wishes`, which would
-   * otherwise REPLACE the design's own list with the single wish just written — the band
-   * would visibly lose its content the moment anyone tried the form. Design-mode wishes
-   * are therefore prepended to the design's list rather than standing in for it. In live
-   * mode the API returns the real list and nothing is appended to it.
-   */
-  return DESIGN_MODE ? [...mapped, ...DESIGN_WISHES] : mapped
+async function loadWishes() {
+  const data = await fetchWishes()
+  if (Array.isArray(data)) {
+    liveWishes.value = data
+  }
+}
+
+onMounted(() => {
+  loadWishes()
+  // Polling realtime setiap 6 detik jika Google Apps Script telah diset
+  if (isGScriptConfigured()) {
+    pollTimer = setInterval(loadWishes, 6000)
+  }
 })
 
-/* The design draws three; the rest are behind the button. */
+onBeforeUnmount(() => {
+  if (pollTimer) clearInterval(pollTimer)
+})
+
+function formatTime(isoOrDate?: string): string {
+  if (!isoOrDate) return ''
+  try {
+    const d = new Date(isoOrDate)
+    if (isNaN(d.getTime())) return String(isoOrDate)
+    return d.toLocaleString('id-ID', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  } catch {
+    return String(isoOrDate)
+  }
+}
+
+const all = computed(() => {
+  return liveWishes.value
+    .map((w) => ({
+      name: w.guest_name || w.nama || 'Tamu',
+      at: formatTime(w.created_at),
+      text: w.message || w.ucapan || '',
+    }))
+    .filter((w) => w.text)
+})
+
+/* Menampilkan 3 ucapan pertama, selebihnya dibuka lewat tombol "Show more" */
 const PAGE = 3
 const shownCount = ref(PAGE)
 const visible = computed(() => all.value.slice(0, shownCount.value))
 const hasMore = computed(() => shownCount.value < all.value.length)
 
 const form = ref({ name: '', text: '' })
-const state = ref<'idle' | 'sending' | 'error'>('idle')
+const state = ref<'idle' | 'sending' | 'error' | 'done'>('idle')
 const error = ref('')
 
 async function send() {
@@ -74,7 +91,20 @@ async function send() {
   }
   state.value = 'sending'
   try {
-    await sendWish({ guest_name: form.value.name, message: form.value.text })
+    const res = await sendWishGAS({
+      guest_name: form.value.name.trim(),
+      message: form.value.text.trim(),
+    })
+    
+    // Realtime update: masukkan langsung ke urutan teratas
+    const newRow: WishItem = res?.data || {
+      id: `local-${Date.now()}`,
+      guest_name: form.value.name.trim(),
+      message: form.value.text.trim(),
+      created_at: new Date().toISOString(),
+    }
+    liveWishes.value = [newRow, ...liveWishes.value]
+
     form.value = { name: '', text: '' }
     state.value = 'idle'
     error.value = ''
@@ -98,7 +128,13 @@ async function send() {
       <p v-if="error" class="wishes__err" role="alert">{{ error }}</p>
     </form>
 
-    <ul class="wishes__list">
+    <!-- State jika komentar masih kosong (Default Kosong) -->
+    <div v-if="!visible.length" class="wishes__empty">
+      <p>Belum ada ucapan.</p>
+      <span>Jadilah yang pertama memberikan doa & ucapan untuk kedua mempelai!</span>
+    </div>
+
+    <ul v-else class="wishes__list">
       <li v-for="(w, n) in visible" :key="n" class="wishes__item">
         <p class="wishes__name">{{ w.name }}</p>
         <p class="wishes__at">{{ w.at }}</p>
@@ -231,5 +267,28 @@ async function send() {
   top: calc(911 * var(--px));
   width: calc(514 * var(--px));
   --delay: 280ms;
+}
+
+.wishes__empty {
+  left: calc(42 * var(--px));
+  top: calc(377 * var(--px));
+  width: calc(514 * var(--px));
+  text-align: center;
+  padding: calc(30 * var(--px)) calc(16 * var(--px));
+  font-family: "Bellefair", serif;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: calc(11 * var(--px));
+}
+
+.wishes__empty p {
+  font-size: calc(22 * var(--px));
+  font-weight: 600;
+  margin-bottom: calc(6 * var(--px));
+}
+
+.wishes__empty span {
+  font-size: calc(16 * var(--px));
+  opacity: 0.85;
 }
 </style>

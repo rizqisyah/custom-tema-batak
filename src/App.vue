@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, ref, watchEffect } from 'vue'
 import CoverSection from './components/cover/CoverSection.vue'
 import InviteBody from './components/invite/InviteBody.vue'
+import FloatingMusic from './components/invite/FloatingMusic.vue'
 import { usePreloadAssets } from './composables/usePreloadAssets'
 import { useWedding } from './composables/useWedding'
 
@@ -23,9 +24,11 @@ const guestName = computed(
 )
 const coupleName = coupleNickname
 
+const DEFAULT_DESKTOP_BG = 'https://ik.imagekit.io/qinvi/3d/waraneymonika/6R4A2483.webp?tr=w-1600,q-85'
+
 const leftBackgroundStyle = computed(() => {
-  const img = wedding.value?.image_bg1 || wedding.value?.image_cover || ''
-  return img ? { backgroundImage: `url(${img})` } : {}
+  const img = wedding.value?.image_bg1 || wedding.value?.image_cover || DEFAULT_DESKTOP_BG
+  return { backgroundImage: `url("${img}")` }
 })
 
 /*
@@ -113,6 +116,9 @@ watchEffect(() => {
         <InviteBody />
       </div>
     </div>
+
+    <!-- Floating Vinyl Music Player -->
+    <FloatingMusic v-if="isOpen" />
   </main>
 </template>
 
