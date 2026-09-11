@@ -16,7 +16,7 @@
  * a module ref rather than in `state.data`, so the other bands do not lose their own
  * design fallbacks the moment someone submits here.
  */
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useReveal } from '../../composables/useReveal'
 import { fetchWishes, sendWishGAS, isGScriptConfigured } from '../../lib/gscript'
 import type { WishItem } from '../../lib/gscript'
@@ -26,6 +26,7 @@ const { el, shown } = useReveal()
 
 // Default list ucapan KOSONG (tidak ada dummy atau komentar bawaan)
 const liveWishes = ref<WishItem[]>([])
+const scrollBox = ref<HTMLElement | null>(null)
 let pollTimer: ReturnType<typeof setInterval> | null = null
 
 async function loadWishes() {
@@ -74,12 +75,6 @@ const all = computed(() => {
     .filter((w) => w.text)
 })
 
-/* Menampilkan 3 ucapan pertama, selebihnya dibuka lewat tombol "Show more" */
-const PAGE = 3
-const shownCount = ref(PAGE)
-const visible = computed(() => all.value.slice(0, shownCount.value))
-const hasMore = computed(() => shownCount.value < all.value.length)
-
 const form = ref({ name: getGuestFromUrl(), text: '' })
 const state = ref<'idle' | 'sending' | 'error' | 'done'>('idle')
 const error = ref('')
@@ -109,6 +104,11 @@ async function send() {
     form.value = { name: '', text: '' }
     state.value = 'idle'
     error.value = ''
+
+    // Otomatis scroll ke pesan terbaru di paling atas
+    nextTick(() => {
+      scrollBox.value?.scrollTo({ top: 0, behavior: 'smooth' })
+    })
   } catch (e) {
     state.value = 'error'
     error.value = e instanceof Error ? e.message : 'Gagal mengirim, coba lagi.'
@@ -130,22 +130,27 @@ async function send() {
     </form>
 
     <!-- State jika komentar masih kosong (Default Kosong) -->
-    <div v-if="!visible.length" class="wishes__empty">
+    <div v-if="!all.length" class="wishes__empty">
       <p>Belum ada ucapan.</p>
       <span>Jadilah yang pertama memberikan doa & ucapan untuk kedua mempelai!</span>
     </div>
 
-    <ul v-else class="wishes__list">
-      <li v-for="(w, n) in visible" :key="n" class="wishes__item">
-        <p class="wishes__name">{{ w.name }}</p>
-        <p class="wishes__at">{{ w.at }}</p>
-        <p class="wishes__text">{{ w.text }}</p>
-      </li>
-    </ul>
+    <!-- Scrollable container untuk daftar ucapan -->
+    <div v-else ref="scrollBox" class="wishes__scroll-box">
+      <div class="wishes__badge">
+        <span>{{ all.length }} Ucapan & Doa</span>
+      </div>
 
-    <button v-if="hasMore" class="wishes__btn wishes__more" type="button" @click="shownCount += PAGE">
-      Show more
-    </button>
+      <ul class="wishes__list">
+        <li v-for="(w, n) in all" :key="n" class="wishes__item">
+          <div class="wishes__item-head">
+            <p class="wishes__name">{{ w.name }}</p>
+            <span class="wishes__at">{{ w.at }}</span>
+          </div>
+          <p class="wishes__text">{{ w.text }}</p>
+        </li>
+      </ul>
+    </div>
   </section>
 </template>
 
@@ -222,64 +227,118 @@ async function send() {
   text-align: left;
 }
 
-/*
- * The rows are a flow at the design's own 174px rhythm, not three absolutely-placed
- * plates, so a fourth wish moves the button instead of landing on top of it.
- */
-.wishes__list {
-  left: calc(84 * var(--px));
-  top: calc(377 * var(--px));
-  width: calc(430 * var(--px));
-  list-style: none;
-  text-align: left;
+/* Container scrollable ucapan */
+.wishes__scroll-box {
+  left: calc(42 * var(--px));
+  top: calc(365 * var(--px));
+  width: calc(514 * var(--px));
+  max-height: calc(580 * var(--px));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  gap: calc(10 * var(--px));
+  padding-right: calc(6 * var(--px));
   --delay: 200ms;
 }
 
+/* Custom Scrollbar */
+.wishes__scroll-box::-webkit-scrollbar {
+  width: calc(5 * var(--px));
+}
+
+.wishes__scroll-box::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: calc(4 * var(--px));
+}
+
+.wishes__scroll-box::-webkit-scrollbar-thumb {
+  background: var(--olive);
+  border-radius: calc(4 * var(--px));
+}
+
+.wishes__scroll-box {
+  scrollbar-width: thin;
+  scrollbar-color: var(--olive) rgba(0, 0, 0, 0.05);
+}
+
+.wishes__badge {
+  font-family: "Abhaya Libre", serif;
+  font-size: calc(18 * var(--px));
+  font-weight: 700;
+  color: var(--ink);
+  text-align: left;
+  padding: 0 calc(4 * var(--px));
+}
+
+.wishes__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(12 * var(--px));
+  text-align: left;
+}
+
 .wishes__item {
-  height: calc(174 * var(--px));
-  overflow: hidden;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: calc(12 * var(--px));
+  padding: calc(14 * var(--px)) calc(16 * var(--px));
+  box-shadow: 0 calc(2 * var(--px)) calc(6 * var(--px)) rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: calc(6 * var(--px));
+}
+
+.wishes__item-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: calc(8 * var(--px));
 }
 
 .wishes__name {
   font-family: "Abhaya Libre", serif;
   font-weight: 800;
   font-size: calc(20 * var(--px));
-  line-height: calc(30 * var(--px));
-  color: #000;
+  line-height: calc(26 * var(--px));
+  color: #111;
 }
 
 .wishes__at {
   font-family: "Bellefair", serif;
-  font-size: calc(18 * var(--px));
-  line-height: calc(27 * var(--px));
-  color: #000;
+  font-size: calc(14 * var(--px));
+  line-height: calc(20 * var(--px));
+  color: rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
 }
 
 .wishes__text {
-  width: calc(427 * var(--px));
   font-family: "Bellefair", serif;
   font-size: calc(18 * var(--px));
-  line-height: calc(30 * var(--px));
-  color: #000;
-}
-
-.wishes__more {
-  left: calc(41 * var(--px));
-  top: calc(911 * var(--px));
-  width: calc(514 * var(--px));
-  --delay: 280ms;
+  line-height: calc(26 * var(--px));
+  color: #222;
+  word-break: break-word;
+  white-space: pre-wrap;
 }
 
 .wishes__empty {
   left: calc(42 * var(--px));
-  top: calc(377 * var(--px));
+  top: calc(365 * var(--px));
   width: calc(514 * var(--px));
   text-align: center;
-  padding: calc(30 * var(--px)) calc(16 * var(--px));
+  padding: calc(36 * var(--px)) calc(20 * var(--px));
   font-family: "Bellefair", serif;
   color: var(--ink);
-  background: rgba(255, 255, 255, 0.6);
-  border-radius: calc(11 * var(--px));
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-radius: calc(12 * var(--px));
+  border: 1px solid rgba(255, 255, 255, 0.8);
 }
 
 .wishes__empty p {
