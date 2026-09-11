@@ -19,8 +19,10 @@ const contentVisible = ref(false)
  * Falls back to the design's own printed guest name, so an unconfigured render matches
  * the design instead of whatever wedding the default slug points at.
  */
+import { getGuestFromUrl } from './lib/guest'
+
 const guestName = computed(
-  () => new URLSearchParams(location.search).get('to') || guest.value?.name || 'Nama Tamu Undangan',
+  () => getGuestFromUrl() || guest.value?.name || 'Nama Tamu Undangan',
 )
 const coupleName = coupleNickname
 

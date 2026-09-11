@@ -18,10 +18,11 @@
 import { ref } from 'vue'
 import { useReveal } from '../../composables/useReveal'
 import { submitRsvpGAS } from '../../lib/gscript'
+import { getGuestFromUrl } from '../../lib/guest'
 
 const { el, shown } = useReveal()
 
-const form = ref({ nama: '', hp: '', hadir: '', jumlah: '' })
+const form = ref({ nama: getGuestFromUrl(), hp: '', hadir: '', jumlah: '' })
 const state = ref<'idle' | 'sending' | 'done' | 'error'>('idle')
 const message = ref('')
 

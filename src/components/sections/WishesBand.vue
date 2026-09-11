@@ -20,6 +20,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useReveal } from '../../composables/useReveal'
 import { fetchWishes, sendWishGAS, isGScriptConfigured } from '../../lib/gscript'
 import type { WishItem } from '../../lib/gscript'
+import { getGuestFromUrl } from '../../lib/guest'
 
 const { el, shown } = useReveal()
 
@@ -79,7 +80,7 @@ const shownCount = ref(PAGE)
 const visible = computed(() => all.value.slice(0, shownCount.value))
 const hasMore = computed(() => shownCount.value < all.value.length)
 
-const form = ref({ name: '', text: '' })
+const form = ref({ name: getGuestFromUrl(), text: '' })
 const state = ref<'idle' | 'sending' | 'error' | 'done'>('idle')
 const error = ref('')
 
